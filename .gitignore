@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment (secrets – do not commit)
+.env
+.env.local
+.env.*.local
+
+# Build output
+web/dist/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+
+# Optional: uncomment if you use them
+# .cursor/
+# .vscode/
