@@ -1,13 +1,15 @@
 # Dependencies
-node_modules/
+node_modules
+dist
 
 # Environment (secrets – do not commit)
 .env
 .env.local
+.env.production
 .env.*.local
 
-# Build output
-web/dist/
+# Build output (Vite under web/)
+web/dist
 
 # OS and editor
 .DS_Store
@@ -15,7 +17,5 @@ Thumbs.db
 *.log
 *.swp
 *.swo
-
-# Optional: uncomment if you use them
-# .cursor/
-# .vscode/
+.vscode
+.cursor
