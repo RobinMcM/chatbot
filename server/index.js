@@ -87,7 +87,7 @@ app.post('/api/chat', async (req, res) => {
       timeoutMs: GATEWAY_TIMEOUT_MS,
     });
     console.log('[chat] Gateway replied, content length=', content?.length ?? 0, 'usage=', usage !== undefined ? 'present' : 'missing');
-    const payload = { content };
+    const payload = { content, model: CHAT_MODEL };
     if (usage !== undefined) payload.usage = usage;
     res.json(payload);
   } catch (err) {

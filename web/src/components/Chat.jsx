@@ -69,6 +69,9 @@ export default function Chat({ chatMode, conversationHistory, onHistoryChange, o
       if (data.usage != null && typeof data.usage === 'object') {
         assistantMessage.usage = data.usage;
       }
+      if (typeof data.model === 'string' && data.model.trim() !== '') {
+        assistantMessage.model = data.model.trim();
+      }
       onHistoryChange([...newHistory, assistantMessage]);
     } catch (err) {
       setError(err.message || 'Failed to send');
@@ -94,6 +97,7 @@ export default function Chat({ chatMode, conversationHistory, onHistoryChange, o
           const costDisplay = isAssistant
             ? (typeof cost === 'number' && !Number.isNaN(cost) ? `$${Number(cost).toFixed(4)}` : '—')
             : null;
+          const modelDisplay = isAssistant && typeof msg.model === 'string' && msg.model.trim() !== '' ? msg.model.trim() : null;
           return (
             <div key={i} className={`chat-message chat-message--${msg.role}`}>
               <span className="chat-message-role">
@@ -103,7 +107,10 @@ export default function Chat({ chatMode, conversationHistory, onHistoryChange, o
                 <div className="chat-message-body chat-message-body--assistant">
                   <div className="chat-message-content chat-message-content--markdown">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content || ''}</ReactMarkdown>
-                    <span className="chat-result-cost-inline">Cost: {costDisplay}</span>
+                    <span className="chat-result-cost-inline">
+                      Cost: {costDisplay}
+                      {modelDisplay != null && ` · ${modelDisplay}`}
+                    </span>
                   </div>
                 </div>
               ) : (
