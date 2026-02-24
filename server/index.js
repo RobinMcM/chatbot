@@ -24,9 +24,9 @@ if (!GATEWAY_API_KEY) {
 const app = express();
 app.use(express.json());
 
-// Serve built frontend (must run after npm run build)
+// Serve built frontend under /chatbot (must run after npm run build)
 const distPath = path.join(PROJECT_ROOT, 'web', 'dist');
-app.use(express.static(distPath));
+app.use('/chatbot', express.static(distPath, { index: false }));
 
 // GET /api/chat-modes – returns id, displayName, promptInfo per mode (from template headers)
 app.get('/api/chat-modes', (req, res) => {
@@ -98,15 +98,16 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// SPA fallback: serve index.html for non-API routes when dist exists
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) return next();
+// SPA fallback: serve index.html for /chatbot and /chatbot/* when dist exists
+app.get('/chatbot', (req, res) => {
   const indexHtml = path.join(distPath, 'index.html');
-  if (fs.existsSync(indexHtml)) {
-    res.sendFile(indexHtml);
-  } else {
-    res.status(404).send('Not found. Run npm run build then npm run start.');
-  }
+  if (fs.existsSync(indexHtml)) res.sendFile(indexHtml);
+  else res.status(404).send('Not found. Run npm run build then npm run start.');
+});
+app.get('/chatbot/*', (req, res) => {
+  const indexHtml = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexHtml)) res.sendFile(indexHtml);
+  else res.status(404).send('Not found. Run npm run build then npm run start.');
 });
 
 const server = app.listen(PORT, () => {
