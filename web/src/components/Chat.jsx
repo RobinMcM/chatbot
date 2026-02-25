@@ -6,7 +6,20 @@ const INPUT_SECTION_HEIGHT_MIN = 56;
 const INPUT_SECTION_HEIGHT_MAX = 240;
 const INPUT_SECTION_HEIGHT_DEFAULT = 80;
 
-export default function Chat({ chatMode, conversationHistory, onHistoryChange, onClearHistory, promptInfo }) {
+export default function Chat({
+  chatMode,
+  conversationHistory,
+  onHistoryChange,
+  onClearHistory,
+  promptInfo,
+  sessionId,
+  conversationId,
+  onConversationId,
+  linkedEmail,
+  emailInput,
+  setEmailInput,
+  onLinkedEmail,
+}) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -49,18 +62,28 @@ export default function Chat({ chatMode, conversationHistory, onHistoryChange, o
     setSending(true);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_mode: chatMode,
-          conversation_history: conversationHistory,
-          user_message: userMessage,
-        }),
-      });
+      const headers = { 'Content-Type': 'application/json' };
+      if (sessionId) headers['X-Session-Id'] = sessionId;
+      const body = {
+        chat_mode: chatMode,
+        conversation_history: conversationHistory,
+        user_message: userMessage,
+      };
+      if (sessionId) body.session_id = sessionId;
+      if (conversationId) body.conversation_id = conversationId;
+      const emailToSend = typeof emailInput === 'string' ? emailInput.trim() : '';
+      if (emailToSend && !linkedEmail && onLinkedEmail) body.email = emailToSend;
+      const res = await fetch('/api/chat', { method: 'POST', headers, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || res.statusText || 'Request failed');
+      }
+      if (emailToSend && !linkedEmail && onLinkedEmail) {
+        onLinkedEmail(emailToSend);
+        setEmailInput('');
+      }
+      if (typeof data.conversation_id === 'string' && data.conversation_id.trim() && typeof onConversationId === 'function') {
+        onConversationId(data.conversation_id.trim());
       }
       const assistantMessage = {
         role: 'assistant',

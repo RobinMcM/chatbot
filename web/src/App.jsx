@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import Chat from './components/Chat';
+import ViewChatsPanel from './components/ViewChatsPanel';
 import mksLogo from '../images/MKS.png';
+import { getEmailFromCookie, setEmailCookie } from './utils/cookies';
 
 const PANEL_HEIGHT_DEFAULT = 520;
 const PANEL_HEIGHT_MIN = 320;
@@ -35,18 +37,46 @@ function InfoIcon() {
   );
 }
 
+const SESSION_STORAGE_KEY = 'chatbot_session_id';
+
+function getOrCreateSessionId() {
+  if (typeof window === 'undefined') return null;
+  let id = window.localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!id) {
+    id = crypto.randomUUID?.() ?? `s-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    window.localStorage.setItem(SESSION_STORAGE_KEY, id);
+  }
+  return id;
+}
+
 export default function App() {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
+  const [conversationId, setConversationId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`));
+  const [linkedEmail, setLinkedEmail] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return getEmailFromCookie() ?? window.localStorage.getItem('chatbot_email') ?? '';
+  });
   const [loading, setLoading] = useState(true);
+  const sessionIdRef = useRef(null);
+  if (!sessionIdRef.current && typeof window !== 'undefined') sessionIdRef.current = getOrCreateSessionId();
+  const sessionId = sessionIdRef.current;
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
+  const [viewChatsPanelOpen, setViewChatsPanelOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
   const resizeRef = useRef({ startY: 0, startHeight: 0 });
   const widthResizeRef = useRef({ startX: 0, startWidth: 0 });
+
+  const handleLoadConversation = useCallback((messages, conversationId) => {
+    setConversationHistory(Array.isArray(messages) ? messages : []);
+    if (conversationId) setConversationId(conversationId);
+    setViewChatsPanelOpen(false);
+  }, []);
   const { modeId: modeIdParam } = useParams();
   const navigate = useNavigate();
 
@@ -172,7 +202,9 @@ export default function App() {
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-brand">
                   <img src={mksLogo} alt="MKS" className="chatbot-panel-logo" />
-                  <span className="chatbot-panel-title"><strong>Moore</strong> Kingston Smith</span>
+                  <a href="https://mooreks.co.uk/contact-us/" target="_blank" rel="noopener noreferrer" className="chatbot-panel-title-link">
+                    <span className="chatbot-panel-title"><strong>Moore</strong> Kingston Smith</span>
+                  </a>
                 </div>
                 <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
                   <ChevronDownIcon />
@@ -193,7 +225,8 @@ export default function App() {
           <ChatIcon />
         </button>
       ) : (
-        <div className="chatbot-panel" style={{ height: panelHeight, width: panelWidth }}>
+        <div className={viewChatsPanelOpen ? 'chatbot-panel-row' : ''} style={viewChatsPanelOpen ? { height: panelHeight } : undefined}>
+          <div className="chatbot-panel" style={{ height: panelHeight, width: panelWidth }}>
           <div
             className="chatbot-panel-width-resize-handle"
             onMouseDown={handleWidthResizeStart}
@@ -217,7 +250,9 @@ export default function App() {
             <div className="chatbot-panel-title-row">
               <div className="chatbot-panel-brand">
                 <img src={mksLogo} alt="MKS" className="chatbot-panel-logo" />
-                <span className="chatbot-panel-title"><strong>Moore</strong> Kingston Smith</span>
+                <a href="https://mooreks.co.uk/contact-us/" target="_blank" rel="noopener noreferrer" className="chatbot-panel-title-link">
+                  <span className="chatbot-panel-title"><strong>Moore</strong> Kingston Smith</span>
+                </a>
               </div>
               <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
                 <ChevronDownIcon />
@@ -233,6 +268,20 @@ export default function App() {
                       return typeof mode === 'object' && mode != null && 'displayName' in mode ? mode.displayName : chatMode;
                     })()}
                   </span>
+                )}
+                {chatMode && (
+                  <>
+                    <span className="chatbot-panel-view-chats-sep" aria-hidden="true"> · </span>
+                    <button
+                      type="button"
+                      className="chatbot-panel-view-chats-link"
+                      onClick={() => setViewChatsPanelOpen((o) => !o)}
+                      aria-expanded={viewChatsPanelOpen}
+                      aria-label="View chats"
+                    >
+                      View chats
+                    </button>
+                  </>
                 )}
                 <div className="chatbot-panel-info-wrap">
                   <button
@@ -263,17 +312,58 @@ export default function App() {
               </div>
             </div>
           </header>
+          <div className="chatbot-panel-email-section">
+            {linkedEmail ? (
+              <p className="chat-email-linked">Saved with {linkedEmail}</p>
+            ) : (
+              <div className="chat-email-form">
+                <input
+                  type="email"
+                  className="chat-email-input"
+                  placeholder="Please enter your email or mobile"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  aria-label="Email"
+                />
+              </div>
+            )}
+          </div>
             <Chat
               chatMode={chatMode}
               conversationHistory={conversationHistory}
               onHistoryChange={setConversationHistory}
-              onClearHistory={() => setConversationHistory([])}
+              onClearHistory={() => {
+                setConversationHistory([]);
+                setConversationId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`);
+              }}
               promptInfo={(() => {
                 const mode = chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode);
                 return typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : '';
               })()}
+              sessionId={sessionId}
+              conversationId={conversationId}
+              onConversationId={setConversationId}
+              linkedEmail={linkedEmail}
+              emailInput={emailInput}
+              setEmailInput={setEmailInput}
+              onLinkedEmail={(email) => {
+                const value = email || '';
+                setLinkedEmail(value);
+                setEmailCookie(value);
+                try { if (typeof window !== 'undefined') window.localStorage.setItem('chatbot_email', value); } catch (_) {}
+              }}
             />
           </div>
+          </div>
+          {viewChatsPanelOpen && (
+            <ViewChatsPanel
+              chatMode={chatMode}
+              sessionId={sessionId}
+              linkedEmail={linkedEmail}
+              onClose={() => setViewChatsPanelOpen(false)}
+              onLoadConversation={handleLoadConversation}
+            />
+          )}
         </div>
       )}
     </div>
