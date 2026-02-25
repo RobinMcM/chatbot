@@ -75,7 +75,6 @@ export default function App() {
   const handleLoadConversation = useCallback((messages, conversationId) => {
     setConversationHistory(Array.isArray(messages) ? messages : []);
     if (conversationId) setConversationId(conversationId);
-    setViewChatsPanelOpen(false);
   }, []);
   const { modeId: modeIdParam } = useParams();
   const navigate = useNavigate();
@@ -360,6 +359,7 @@ export default function App() {
               chatMode={chatMode}
               sessionId={sessionId}
               linkedEmail={linkedEmail}
+              conversationId={conversationId}
               onClose={() => setViewChatsPanelOpen(false)}
               onLoadConversation={handleLoadConversation}
             />

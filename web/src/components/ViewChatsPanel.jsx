@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, onClose, onLoadConversation }) {
+export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conversationId, onClose, onLoadConversation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,7 +103,7 @@ export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, onClo
             <li key={(c.conversation_id || i) + String(c.created_at)} className="view-chats-item">
               <button
                 type="button"
-                className="view-chats-item-btn"
+                className={`view-chats-item-btn${conversationId && c.conversation_id === conversationId ? ' view-chats-item-btn--selected' : ''}`}
                 onClick={() => handleSelectConversation(c)}
                 disabled={loadingConversation !== null}
                 aria-label={`Load conversation: ${c.question_preview || 'No preview'}`}

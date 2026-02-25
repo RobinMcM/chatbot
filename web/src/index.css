@@ -732,7 +732,7 @@ body {
   min-width: 280px;
   height: 100%;
   overflow-y: auto;
-  background: #fff;
+  background: #f8fafc;
   border-left: 1px solid #e2e8f0;
   padding: 0.75rem 1rem;
   display: flex;
@@ -793,7 +793,23 @@ body {
   color: inherit;
 }
 .view-chats-item-btn:hover {
-  background: #f8fafc;
+  background: #f1f5f9;
+}
+.view-chats-item-btn--selected {
+  background: #2563eb;
+  color: #fff;
+  border-radius: 8px;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  margin: 0 0 0.25rem 0;
+  border: none;
+}
+.view-chats-item-btn--selected .view-chats-item-question,
+.view-chats-item-btn--selected .view-chats-item-question--muted {
+  color: #fff;
+}
+.view-chats-item-btn--selected .view-chats-item-date {
+  color: rgba(255, 255, 255, 0.9);
 }
 .view-chats-item-btn:disabled {
   opacity: 0.7;

@@ -6,7 +6,8 @@ let pool = null;
 
 function getConfig() {
   if (POSTGRES_SQL_CONNECTION_STRING && POSTGRES_SQL_CONNECTION_STRING.trim() !== '') {
-    return POSTGRES_SQL_CONNECTION_STRING.trim();
+    const url = POSTGRES_SQL_CONNECTION_STRING.trim().replace(/[?&]sslmode=\w+/g, '');
+    return url.replace(/\?$/, '');
   }
   return null;
 }
