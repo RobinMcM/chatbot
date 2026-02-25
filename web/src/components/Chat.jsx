@@ -19,6 +19,7 @@ export default function Chat({
   emailInput,
   setEmailInput,
   onLinkedEmail,
+  onMessageSent,
 }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -96,6 +97,7 @@ export default function Chat({
         assistantMessage.model = data.model.trim();
       }
       onHistoryChange([...newHistory, assistantMessage]);
+      if (typeof onMessageSent === 'function') onMessageSent();
     } catch (err) {
       setError(err.message || 'Failed to send');
     } finally {
@@ -113,14 +115,6 @@ export default function Chat({
         )}
         {conversationHistory.map((msg, i) => {
           const isAssistant = msg.role === 'assistant';
-          const usage = isAssistant ? msg.usage : null;
-          const cost = usage != null
-            ? (usage.total ?? usage.total_cost ?? usage.subtotal)
-            : null;
-          const costDisplay = isAssistant
-            ? (typeof cost === 'number' && !Number.isNaN(cost) ? `$${Number(cost).toFixed(4)}` : '—')
-            : null;
-          const modelDisplay = isAssistant && typeof msg.model === 'string' && msg.model.trim() !== '' ? msg.model.trim() : null;
           return (
             <div key={i} className={`chat-message chat-message--${msg.role}`}>
               <span className="chat-message-role">
@@ -130,10 +124,6 @@ export default function Chat({
                 <div className="chat-message-body chat-message-body--assistant">
                   <div className="chat-message-content chat-message-content--markdown">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content || ''}</ReactMarkdown>
-                    <span className="chat-result-cost-inline">
-                      Cost: {costDisplay}
-                      {modelDisplay != null && ` · ${modelDisplay}`}
-                    </span>
                   </div>
                 </div>
               ) : (

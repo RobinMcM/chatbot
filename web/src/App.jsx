@@ -68,6 +68,7 @@ export default function App() {
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
   const [viewChatsPanelOpen, setViewChatsPanelOpen] = useState(false);
+  const [viewChatsRefreshTrigger, setViewChatsRefreshTrigger] = useState(0);
   const [emailInput, setEmailInput] = useState('');
   const resizeRef = useRef({ startY: 0, startHeight: 0 });
   const widthResizeRef = useRef({ startX: 0, startWidth: 0 });
@@ -76,6 +77,7 @@ export default function App() {
     setConversationHistory(Array.isArray(messages) ? messages : []);
     if (conversationId) setConversationId(conversationId);
   }, []);
+
   const { modeId: modeIdParam } = useParams();
   const navigate = useNavigate();
 
@@ -351,6 +353,7 @@ export default function App() {
                 setEmailCookie(value);
                 try { if (typeof window !== 'undefined') window.localStorage.setItem('chatbot_email', value); } catch (_) {}
               }}
+              onMessageSent={() => setViewChatsRefreshTrigger((t) => t + 1)}
             />
           </div>
           </div>
@@ -362,6 +365,7 @@ export default function App() {
               conversationId={conversationId}
               onClose={() => setViewChatsPanelOpen(false)}
               onLoadConversation={handleLoadConversation}
+              refreshTrigger={viewChatsRefreshTrigger}
             />
           )}
         </div>

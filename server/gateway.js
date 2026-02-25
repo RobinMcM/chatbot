@@ -136,8 +136,14 @@ export async function executeChat({ baseUrl, apiKey, model, messages, timeoutMs 
   const content =
     result?.choices?.[0]?.message?.content ?? result?.choices?.[0]?.text ?? '';
   const usage = data.usage ?? undefined;
+  const modelFromResponse =
+    typeof data.model === 'string' && data.model.trim() !== ''
+      ? data.model.trim()
+      : typeof result?.model === 'string' && result.model.trim() !== ''
+        ? result.model.trim()
+        : undefined;
 
-  console.log('[gateway] Success: status=200 elapsed=%d ms contentLength=%d usage=%s',
-    elapsed, String(content).length, usage ? JSON.stringify(usage) : 'none');
-  return { content: String(content), usage };
+  console.log('[gateway] Success: status=200 elapsed=%d ms contentLength=%d usage=%s model=%s',
+    elapsed, String(content).length, usage ? JSON.stringify(usage) : 'none', modelFromResponse || 'none');
+  return { content: String(content), usage, model: modelFromResponse };
 }

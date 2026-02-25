@@ -197,6 +197,72 @@ export async function getMessages(clientId, conversationId) {
   }));
 }
 
+/**
+ * Delete all messages for a conversation (delete conversation hierarchy).
+ * Returns the number of rows deleted.
+ */
+export async function deleteConversation(clientId, conversationId) {
+  const p = await getPool();
+  if (!p) return 0;
+  const result = await p.request()
+    .input('client_id', sql.NVarChar(256), clientId)
+    .input('conversation_id', sql.NVarChar(64), conversationId)
+    .query(`
+      DELETE FROM dbo.chat_messages
+      WHERE client_id = @client_id AND conversation_id = @conversation_id
+    `);
+  return result.rowsAffected?.[0] ?? 0;
+}
+
+/**
+ * Admin: list conversations across clients with optional filters.
+ * Returns: client_id, email, conversation_id, chat_mode, created_at, question_preview.
+ */
+export async function getConversationsForAdmin({ clientId = null, email = null, chatMode = null, limit = 200 } = {}) {
+  const p = await getPool();
+  if (!p) return [];
+  const cap = Math.min(Math.max(Number(limit) || 200, 1), 500);
+  const hasClient = clientId && typeof clientId === 'string' && clientId.trim() !== '';
+  const hasEmail = email && typeof email === 'string' && email.trim() !== '';
+  const hasMode = chatMode && typeof chatMode === 'string' && chatMode.trim() !== '';
+  let req = p.request()
+    .input('limit', sql.Int, cap);
+  const conditions = [];
+  if (hasClient) {
+    req = req.input('client_id', sql.NVarChar(256), clientId.trim().slice(0, 256));
+    conditions.push('m.client_id = @client_id');
+  }
+  if (hasEmail) {
+    req = req.input('email_filter', sql.NVarChar(320), '%' + email.trim().slice(0, 320) + '%');
+    conditions.push('m.email LIKE @email_filter');
+  }
+  if (hasMode) {
+    req = req.input('chat_mode', sql.NVarChar(64), chatMode.trim().slice(0, 64));
+    conditions.push('m.chat_mode = @chat_mode');
+  }
+  const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+  const result = await req.query(`
+    SELECT TOP (@limit) m.client_id,
+      MAX(m.email) AS email,
+      m.conversation_id,
+      m.chat_mode,
+      MIN(m.created_at) AS created_at,
+      (SELECT TOP 1 content FROM dbo.chat_messages m3 WHERE m3.client_id = m.client_id AND m3.conversation_id = m.conversation_id AND m3.role = 'user' ORDER BY m3.created_at ASC) AS question_preview,
+      (SELECT TOP 1 m2.model FROM dbo.chat_messages m2 WHERE m2.client_id = m.client_id AND m2.conversation_id = m.conversation_id AND m2.role = 'assistant' AND m2.model IS NOT NULL AND m2.model <> '' ORDER BY m2.created_at DESC) AS model,
+      (SELECT SUM(COALESCE(
+        TRY_CAST(JSON_VALUE(m2.usage, '$.total') AS FLOAT),
+        TRY_CAST(JSON_VALUE(m2.usage, '$.total_cost') AS FLOAT),
+        TRY_CAST(JSON_VALUE(m2.usage, '$.cost') AS FLOAT),
+        TRY_CAST(JSON_VALUE(m2.usage, '$.subtotal') AS FLOAT)
+      )) FROM dbo.chat_messages m2 WHERE m2.client_id = m.client_id AND m2.conversation_id = m.conversation_id AND m2.role = 'assistant' AND m2.usage IS NOT NULL AND LEN(m2.usage) > 0) AS total_cost
+    FROM dbo.chat_messages m
+    ${whereClause}
+    GROUP BY m.client_id, m.conversation_id, m.chat_mode
+    ORDER BY MIN(m.created_at) DESC
+  `);
+  return result.recordset || [];
+}
+
 export async function getClientIdByEmail(email) {
   const p = await getPool();
   if (!p) return null;

@@ -91,15 +91,20 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     console.log('[chat] Calling gateway...');
-    const { content, usage } = await executeChat({
+    const { content, usage, model: gatewayModel } = await executeChat({
       baseUrl: GATEWAY_BASE_URL,
       apiKey: GATEWAY_API_KEY,
       model: CHAT_MODEL,
       messages,
       timeoutMs: GATEWAY_TIMEOUT_MS,
     });
-    console.log('[chat] Gateway replied, content length=', content?.length ?? 0, 'usage=', usage !== undefined ? 'present' : 'missing');
-    const payload = { content, model: CHAT_MODEL };
+    const modelToUse = typeof gatewayModel === 'string' && gatewayModel.trim() !== ''
+      ? gatewayModel.trim().slice(0, 128)
+      : (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() !== '' ? CHAT_MODEL.trim() : null);
+    const modelForPayload = modelToUse || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() !== '' ? CHAT_MODEL.trim() : null);
+    const modelForDb = modelForPayload || 'unknown';
+    console.log('[chat] Gateway replied, content length=', content?.length ?? 0, 'usage=', usage !== undefined ? 'present' : 'missing', 'model=', modelForPayload ?? 'none');
+    const payload = { content, model: modelForPayload };
     if (usage !== undefined) payload.usage = usage;
 
     if (db.isConfigured()) {
@@ -120,7 +125,7 @@ app.post('/api/chat', async (req, res) => {
           chat_mode,
           [
             { role: 'user', content: user_message },
-            { role: 'assistant', content: payload.content || '', model: CHAT_MODEL, usage: payload.usage },
+            { role: 'assistant', content: payload.content || '', model: modelForDb, usage: payload.usage },
           ],
           emailForMessages
         );
@@ -182,6 +187,24 @@ app.get('/api/chat-history', async (req, res) => {
   }
 });
 
+// GET /api/chat-history/admin – admin list conversations with optional filters (client_id, email, chat_mode, limit)
+app.get('/api/chat-history/admin', async (req, res) => {
+  if (!db.isConfigured()) {
+    return res.status(503).json({ error: 'Persistence not configured' });
+  }
+  try {
+    const clientId = typeof req.query.client_id === 'string' ? req.query.client_id.trim() || null : null;
+    const email = typeof req.query.email === 'string' ? req.query.email.trim() || null : null;
+    const chatMode = typeof req.query.chat_mode === 'string' ? req.query.chat_mode.trim() || null : null;
+    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 200;
+    const conversations = await db.getConversationsForAdmin({ clientId, email, chatMode, limit });
+    res.json({ conversations });
+  } catch (err) {
+    console.error('[chat-history/admin]', err.message);
+    res.status(500).json({ error: err.message || 'Failed to list history' });
+  }
+});
+
 // GET /api/chat-history/messages?client_id=...&conversation_id=... – load one conversation
 app.get('/api/chat-history/messages', async (req, res) => {
   const clientId = typeof req.query.client_id === 'string' ? req.query.client_id.trim().slice(0, 256) : null;
@@ -198,6 +221,44 @@ app.get('/api/chat-history/messages', async (req, res) => {
   } catch (err) {
     console.error('[chat-history/messages]', err.message);
     res.status(500).json({ error: err.message || 'Failed to load messages' });
+  }
+});
+
+// DELETE /api/chat-history/conversation?conversation_id=... – delete conversation hierarchy (client from session)
+app.delete('/api/chat-history/conversation', async (req, res) => {
+  const conversationId = typeof req.query.conversation_id === 'string' ? req.query.conversation_id.trim().slice(0, 64) : null;
+  if (!conversationId) {
+    return res.status(400).json({ error: 'conversation_id required' });
+  }
+  if (!db.isConfigured()) {
+    return res.status(503).json({ error: 'Persistence not configured' });
+  }
+  try {
+    const clientId = deriveClientId(req);
+    const deleted = await db.deleteConversation(clientId, conversationId);
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    console.error('[chat-history/conversation DELETE]', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete conversation' });
+  }
+});
+
+// DELETE /api/chat-history/admin/conversation?client_id=...&conversation_id=... – admin: delete conversation hierarchy
+app.delete('/api/chat-history/admin/conversation', async (req, res) => {
+  const clientId = typeof req.query.client_id === 'string' ? req.query.client_id.trim().slice(0, 256) : null;
+  const conversationId = typeof req.query.conversation_id === 'string' ? req.query.conversation_id.trim().slice(0, 64) : null;
+  if (!clientId || !conversationId) {
+    return res.status(400).json({ error: 'client_id and conversation_id required' });
+  }
+  if (!db.isConfigured()) {
+    return res.status(503).json({ error: 'Persistence not configured' });
+  }
+  try {
+    const deleted = await db.deleteConversation(clientId, conversationId);
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    console.error('[chat-history/admin/conversation DELETE]', err.message);
+    res.status(500).json({ error: err.message || 'Failed to delete conversation' });
   }
 });
 

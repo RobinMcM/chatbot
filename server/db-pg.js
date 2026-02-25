@@ -183,6 +183,72 @@ export async function getMessages(clientId, conversationId) {
   }));
 }
 
+/**
+ * Delete all messages for a conversation (delete conversation hierarchy).
+ * Returns the number of rows deleted.
+ */
+export async function deleteConversation(clientId, conversationId) {
+  const p = await getPool();
+  if (!p) return 0;
+  const result = await p.query(
+    `DELETE FROM chat_messages WHERE client_id = $1 AND conversation_id = $2`,
+    [clientId, conversationId]
+  );
+  return result.rowCount ?? 0;
+}
+
+/**
+ * Admin: list conversations across clients with optional filters.
+ * Returns: client_id, email, conversation_id, chat_mode, created_at, question_preview.
+ */
+export async function getConversationsForAdmin({ clientId = null, email = null, chatMode = null, limit = 200 } = {}) {
+  const p = await getPool();
+  if (!p) return [];
+  const cap = Math.min(Math.max(Number(limit) || 200, 1), 500);
+  const conditions = [];
+  const params = [];
+  let idx = 1;
+  if (clientId && typeof clientId === 'string' && clientId.trim() !== '') {
+    conditions.push(`m.client_id = $${idx}`);
+    params.push(clientId.trim().slice(0, 256));
+    idx += 1;
+  }
+  if (email && typeof email === 'string' && email.trim() !== '') {
+    conditions.push(`m.email ILIKE $${idx}`);
+    params.push(`%${email.trim().slice(0, 320)}%`);
+    idx += 1;
+  }
+  if (chatMode && typeof chatMode === 'string' && chatMode.trim() !== '') {
+    conditions.push(`m.chat_mode = $${idx}`);
+    params.push(chatMode.trim().slice(0, 64));
+    idx += 1;
+  }
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  params.push(cap);
+  const result = await p.query(
+    `SELECT m.client_id,
+       MAX(m.email) AS email,
+       m.conversation_id,
+       m.chat_mode,
+       MIN(m.created_at) AS created_at,
+       (SELECT content FROM chat_messages m3 WHERE m3.client_id = m.client_id AND m3.conversation_id = m.conversation_id AND m3.role = 'user' ORDER BY m3.created_at ASC LIMIT 1) AS question_preview,
+       (SELECT m2.model FROM chat_messages m2 WHERE m2.client_id = m.client_id AND m2.conversation_id = m.conversation_id AND m2.role = 'assistant' AND m2.model IS NOT NULL AND m2.model <> '' ORDER BY m2.created_at DESC LIMIT 1) AS model,
+       (SELECT SUM(COALESCE(
+         NULLIF(TRIM(m2.usage::json->>'total'), '')::numeric,
+         NULLIF(TRIM(m2.usage::json->>'total_cost'), '')::numeric,
+         NULLIF(TRIM(m2.usage::json->>'cost'), '')::numeric,
+         NULLIF(TRIM(m2.usage::json->>'subtotal'), '')::numeric
+       )) FROM chat_messages m2 WHERE m2.client_id = m.client_id AND m2.conversation_id = m.conversation_id AND m2.role = 'assistant' AND m2.usage IS NOT NULL AND m2.usage <> '') AS total_cost
+     FROM chat_messages m
+     ${whereClause}
+     GROUP BY m.client_id, m.conversation_id, m.chat_mode
+     ORDER BY MIN(m.created_at) DESC
+     LIMIT $${idx}`,
+    params
+  );
+  return result.rows || [];
+}
+
 export async function getClientIdByEmail(email) {
   const p = await getPool();
   if (!p) return null;

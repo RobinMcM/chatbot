@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conversationId, onClose, onLoadConversation }) {
+export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conversationId, onClose, onLoadConversation, refreshTrigger }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,7 +48,7 @@ export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conve
         setConversations([]);
       })
       .finally(() => setLoading(false));
-  }, [chatMode, sessionId, linkedEmail]);
+  }, [chatMode, sessionId, linkedEmail, refreshTrigger]);
 
   const handleSelectConversation = async (c) => {
     const clientId = c.client_id;
