@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 
 const ADMIN_LIMIT = 200;
 
@@ -153,6 +154,7 @@ export default function ViewChatsPage() {
   return (
     <div className="view-chats-page">
       <header className="view-chats-header">
+        <Link to="/" className="view-chats-back">Back to home</Link>
         <h1 className="view-chats-title">View chats</h1>
         <p className="view-chats-header-desc">Expand a row to open the chat, then use &quot;Delete chat&quot; to remove that conversation and all its messages.</p>
       </header>

@@ -220,7 +220,13 @@ export default function App() {
   }
 
   return (
-    <div className="chatbot-widget">
+    <>
+      {modeIdParam && (
+        <Link to="/" className="chatbot-mode-page-home" aria-label="Back to home">
+          Home
+        </Link>
+      )}
+      <div className="chatbot-widget">
       {!open ? (
         <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat">
           <ChatIcon />
@@ -370,6 +376,7 @@ export default function App() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
