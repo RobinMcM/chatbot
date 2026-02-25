@@ -51,10 +51,29 @@ export default function ViewChatsPage() {
     const sid = getSessionId();
     if (sid) headers['X-Session-Id'] = sid;
     fetch(url.toString(), { headers })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok) {
+          const text = await res.text();
+          if (res.status === 504) return { error: 'Request timed out. Please try again.' };
+          if (contentType.includes('application/json')) {
+            try {
+              const data = JSON.parse(text);
+              return { error: data.error || res.statusText || 'Failed to load history' };
+            } catch (_) {}
+          }
+          return { error: res.status === 504 ? 'Request timed out. Please try again.' : 'Failed to load history' };
+        }
+        if (!contentType.includes('application/json')) return { error: 'Invalid response from server' };
+        return res.json();
+      })
       .then((data) => {
-        setConversations(Array.isArray(data.conversations) ? data.conversations : []);
-        if (data.error) setError(data.error);
+        if (data.error) {
+          setError(data.error);
+          setConversations([]);
+        } else {
+          setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+        }
       })
       .catch((err) => {
         setError(err.message || 'Failed to load history');

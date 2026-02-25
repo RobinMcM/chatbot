@@ -165,7 +165,6 @@ app.get('/api/chat-history', async (req, res) => {
     return res.status(503).json({ error: 'Persistence not configured' });
   }
   try {
-    await db.ensureTables();
     const email = typeof req.query.email === 'string' ? req.query.email.trim() : null;
     const chatMode = typeof req.query.chat_mode === 'string' ? req.query.chat_mode.trim() || null : null;
     const clientId = email ? await db.getClientIdByEmail(email) : deriveClientId(req);
@@ -214,14 +213,26 @@ app.get('/chatbot/*', (req, res) => {
   else res.status(404).send('Not found. Run npm run build then npm run start.');
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`UsageFlows Chatbot server on http://localhost:${PORT}`);
-});
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Stop the process (e.g. kill $(lsof -t -i:${PORT}) 2>/dev/null) or set PORT to another value.`);
-    process.exit(1);
+async function start() {
+  if (db.isConfigured()) {
+    try {
+      await db.ensureTables();
+      console.log('[db] Tables ensured at startup');
+    } catch (err) {
+      console.error('[db] ensureTables at startup failed:', err.message);
+    }
   }
-  throw err;
-});
+  const server = app.listen(PORT, () => {
+    console.log(`UsageFlows Chatbot server on http://localhost:${PORT}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Stop the process (e.g. kill $(lsof -t -i:${PORT}) 2>/dev/null) or set PORT to another value.`);
+      process.exit(1);
+    }
+    throw err;
+  });
+}
+
+start();
+

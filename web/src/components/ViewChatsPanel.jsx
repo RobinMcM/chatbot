@@ -19,10 +19,29 @@ export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, onClo
     const headers = {};
     if (sessionId) headers['X-Session-Id'] = sessionId;
     fetch(url.toString(), { headers })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok) {
+          const text = await res.text();
+          if (res.status === 504) return { error: 'Request timed out. Please try again.' };
+          if (contentType.includes('application/json')) {
+            try {
+              const data = JSON.parse(text);
+              return { error: data.error || res.statusText || 'Failed to load history' };
+            } catch (_) {}
+          }
+          return { error: res.status === 504 ? 'Request timed out. Please try again.' : 'Failed to load history' };
+        }
+        if (!contentType.includes('application/json')) return { error: 'Invalid response from server' };
+        return res.json();
+      })
       .then((data) => {
-        setConversations(Array.isArray(data.conversations) ? data.conversations : []);
-        if (data.error) setError(data.error);
+        if (data.error) {
+          setError(data.error);
+          setConversations([]);
+        } else {
+          setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+        }
       })
       .catch((err) => {
         setError(err.message || 'Failed to load history');
@@ -41,7 +60,15 @@ export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, onClo
       url.searchParams.set('client_id', clientId);
       url.searchParams.set('conversation_id', conversationId);
       const res = await fetch(url.toString());
-      const data = await res.json().catch(() => ({}));
+      const contentType = res.headers.get('content-type') || '';
+      let data = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => ({}));
+      } else {
+        await res.text();
+        if (res.status === 504) throw new Error('Request timed out. Please try again.');
+        throw new Error('Failed to load conversation');
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to load');
       const messages = Array.isArray(data.messages) ? data.messages : [];
       onLoadConversation(messages, conversationId);
