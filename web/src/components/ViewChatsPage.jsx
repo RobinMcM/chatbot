@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { formatChatContent } from '../utils/formatChatContent';
 
 const ADMIN_LIMIT = 200;
 
@@ -48,6 +51,7 @@ export default function ViewChatsPage() {
   const [error, setError] = useState(null);
   const [expandedKey, setExpandedKey] = useState(null);
   const [expandedMessages, setExpandedMessages] = useState([]);
+  const [viewAsFormatted, setViewAsFormatted] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(null);
   const [deletingKey, setDeletingKey] = useState(null);
 
@@ -57,11 +61,6 @@ export default function ViewChatsPage() {
       .then((data) => {
         const modes = Array.isArray(data.chat_modes) ? data.chat_modes : [];
         setChatModes(modes);
-        if (modes.length > 0 && !filterTopic) {
-          const first = modes[0];
-          const id = typeof first === 'object' && first !== null && 'id' in first ? first.id : first;
-          setFilterTopic(typeof id === 'string' ? id : '');
-        }
       })
       .catch((err) => setError(err.message || 'Failed to load modes'));
   }, []);
@@ -274,6 +273,15 @@ export default function ViewChatsPage() {
                             <div className="view-chats-grid-expanded-header">
                               <div className="view-chats-grid-expanded-header-left">
                                 <p className="view-chats-grid-messages-title">Chat history</p>
+                                <button
+                                  type="button"
+                                  className="view-chats-format-toggle"
+                                  onClick={() => setViewAsFormatted((v) => !v)}
+                                  aria-pressed={viewAsFormatted}
+                                  aria-label={viewAsFormatted ? 'Show as plain text' : 'Show as formatted (markdown)'}
+                                >
+                                  {viewAsFormatted ? 'Text' : 'Formatted'}
+                                </button>
                                 {expandedMessages.length > 0 && (() => {
                                   const total = expandedMessages
                                     .filter((m) => m.role === 'assistant' && m.usage)
@@ -331,7 +339,15 @@ export default function ViewChatsPage() {
                                         {msg.model ? ` · ${msg.model}` : ''}
                                         {msg.role === 'assistant' && (getMessageCost(msg.usage) != null ? ` · Cost: ${formatCost(getMessageCost(msg.usage))}` : '')}
                                       </span>
-                                      <div style={{ marginTop: '0.25rem' }}>{msg.content}</div>
+                                      <div style={{ marginTop: '0.25rem' }}>
+                                        {viewAsFormatted ? (
+                                          <div className="chat-message-content chat-message-content--markdown">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{formatChatContent(msg.content)}</ReactMarkdown>
+                                          </div>
+                                        ) : (
+                                          <>{msg.content}</>
+                                        )}
+                                      </div>
                                     </div>
                                   )
                                 ))}

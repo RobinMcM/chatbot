@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { formatChatContent } from '../utils/formatChatContent';
 
 const INPUT_SECTION_HEIGHT_MIN = 56;
 const INPUT_SECTION_HEIGHT_MAX = 240;
@@ -123,7 +124,7 @@ export default function Chat({
               {isAssistant ? (
                 <div className="chat-message-body chat-message-body--assistant">
                   <div className="chat-message-content chat-message-content--markdown">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content || ''}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{formatChatContent(msg.content)}</ReactMarkdown>
                   </div>
                 </div>
               ) : (
