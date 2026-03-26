@@ -17,6 +17,8 @@ const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY;
 const CHAT_MODEL = process.env.CHAT_MODEL || 'openai/gpt-5-pro';
 const GATEWAY_TIMEOUT_MS = Number(process.env.GATEWAY_TIMEOUT_MS) || 120000; // 2 min
 const PORT = Number(process.env.PORT) || 3000;
+const CHATBOT_FRAME_ANCESTORS = process.env.CHATBOT_FRAME_ANCESTORS
+  || "'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com";
 
 if (!GATEWAY_API_KEY) {
   console.error('GATEWAY_API_KEY is required. Set it in .env or environment.');
@@ -25,6 +27,20 @@ if (!GATEWAY_API_KEY) {
 
 const app = express();
 app.use(express.json());
+
+function buildFrameAncestors() {
+  const tokens = String(CHATBOT_FRAME_ANCESTORS)
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  return tokens.length ? tokens.join(' ') : "'self'";
+}
+
+function applyChatbotFrameHeaders(res) {
+  const frameAncestors = buildFrameAncestors();
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', `frame-ancestors ${frameAncestors};`);
+}
 
 function deriveClientId(req) {
   const sessionId = req.body?.session_id ?? req.headers['x-session-id'] ?? req.query?.session_id;
@@ -37,6 +53,10 @@ function deriveClientId(req) {
 
 // Serve built frontend under /chatbot (must run after npm run build)
 const distPath = path.join(PROJECT_ROOT, 'web', 'dist');
+app.use('/chatbot', (req, res, next) => {
+  applyChatbotFrameHeaders(res);
+  next();
+});
 app.use('/chatbot', express.static(distPath, { index: false }));
 
 // GET /api/chat-modes – returns id, displayName, promptInfo per mode (from template headers)

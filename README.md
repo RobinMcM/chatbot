@@ -78,6 +78,7 @@ Your chatbot host (reverse proxy/CDN/app server) must allow being framed by appr
 
 - Do not send `X-Frame-Options: DENY`.
 - Prefer CSP `frame-ancestors` with an allowlist of trusted hosts.
+- The Express app now sets `Content-Security-Policy: frame-ancestors ...` on `/chatbot` routes using `CHATBOT_FRAME_ANCESTORS`.
 
 Example CSP directive:
 
@@ -86,6 +87,7 @@ Content-Security-Policy: frame-ancestors 'self' https://rapidmvp.io https://*.sh
 ```
 
 If you still use `X-Frame-Options`, use `SAMEORIGIN` only when iframe parent is same origin. For cross-origin embedding (SharePoint/rapidmvp), rely on CSP `frame-ancestors` allowlist.
+If your reverse proxy also sets CSP/X-Frame-Options, make sure it does not override or block the allowlist from app settings.
 
 ## Environment variables
 
@@ -96,6 +98,7 @@ If you still use `X-Frame-Options`, use `SAMEORIGIN` only when iframe parent is 
 | `CHAT_MODEL` | OpenRouter model id for chat | `openai/gpt-5-pro` |
 | `GATEWAY_TIMEOUT_MS` | Timeout for gateway request (ms) | `120000` (2 min) |
 | `PORT` | Server port | `3000` |
+| `CHATBOT_FRAME_ANCESTORS` | Comma-separated iframe parent allowlist for `/chatbot` routes | `'self',https://rapidmvp.io,https://www.rapidmvp.io,https://*.sharepoint.com` |
 
 Copy `.env.example` to `.env` and set `GATEWAY_API_KEY` (and others if needed).
 
