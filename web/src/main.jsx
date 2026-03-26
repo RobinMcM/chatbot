@@ -13,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/" element={<LandingPage />} />
         <Route path="/view" element={<ViewChatsPage />} />
         <Route path="/:modeId" element={<App />} />
+        <Route path="/embed/:modeId" element={<App embedded />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

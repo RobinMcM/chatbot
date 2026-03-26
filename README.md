@@ -37,6 +37,48 @@ npm run start
 
 The Express server serves the built frontend from `web/dist` and the API. Open http://localhost:3000 (or your `PORT`).
 
+## Embed via iframe (SharePoint + any website)
+
+This quick-win integration mode uses the hosted chatbot page directly in an iframe.
+
+- Recommended iframe URL: `https://your-chatbot-host/chatbot/embed/insolvency` (replace `insolvency` with your mode id)
+- Keep chatbot API same-origin to the chatbot host (the iframe page calls its own `/api/...` routes).
+
+### SharePoint Online (Embed Web Part)
+
+In SharePoint, use the Embed Web Part and set the source URL to your hosted chatbot embed route:
+
+`https://your-chatbot-host/chatbot/embed/insolvency`
+
+### Generic HTML embed
+
+```html
+<iframe
+  src="https://your-chatbot-host/chatbot/embed/insolvency"
+  title="Advisory assistant"
+  width="380"
+  height="560"
+  style="border:0;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);"
+  loading="lazy"
+  referrerpolicy="strict-origin-when-cross-origin"
+></iframe>
+```
+
+## Framing and security headers
+
+Your chatbot host (reverse proxy/CDN/app server) must allow being framed by approved origins.
+
+- Do not send `X-Frame-Options: DENY`.
+- Prefer CSP `frame-ancestors` with an allowlist of trusted hosts.
+
+Example CSP directive:
+
+```text
+Content-Security-Policy: frame-ancestors 'self' https://rapidmvp.io https://*.sharepoint.com;
+```
+
+If you still use `X-Frame-Options`, use `SAMEORIGIN` only when iframe parent is same origin. For cross-origin embedding (SharePoint/rapidmvp), rely on CSP `frame-ancestors` allowlist.
+
 ## Environment variables
 
 | Variable | Description | Default |

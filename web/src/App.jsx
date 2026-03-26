@@ -49,7 +49,7 @@ function getOrCreateSessionId() {
   return id;
 }
 
-export default function App() {
+export default function App({ embedded = false }) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
@@ -63,7 +63,7 @@ export default function App() {
   if (!sessionIdRef.current && typeof window !== 'undefined') sessionIdRef.current = getOrCreateSessionId();
   const sessionId = sessionIdRef.current;
   const [error, setError] = useState(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [infoOpen, setInfoOpen] = useState(false);
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
@@ -144,7 +144,7 @@ export default function App() {
           if (canonical) {
             setChatMode(canonical);
           } else {
-            navigate(`/${ids[0]}`, { replace: true });
+            navigate(embedded ? `/embed/${ids[0]}` : `/${ids[0]}`, { replace: true });
             setChatMode(ids[0]);
           }
         } else {
@@ -153,7 +153,7 @@ export default function App() {
       })
       .catch((err) => setError(err.message || 'Failed to load chat modes'))
       .finally(() => setLoading(false));
-  }, [modeIdParam, navigate]);
+  }, [modeIdParam, navigate, embedded]);
 
   useEffect(() => {
     if (chatModes.length === 0) return;
@@ -165,41 +165,49 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="chatbot-widget">
-        <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat" disabled>
-          <ChatIcon />
-        </button>
+      <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
+        {!embedded && (
+          <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat" disabled>
+            <ChatIcon />
+          </button>
+        )}
         <span className="chatbot-loading">Loading…</span>
       </div>
     );
   }
   if (error) {
     return (
-      <div className="chatbot-widget">
-        <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat">
-          <ChatIcon />
-        </button>
-        {open && (
+      <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
+        {!embedded && (
+          <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat">
+            <ChatIcon />
+          </button>
+        )}
+        {(open || embedded) && (
           <div className="chatbot-panel" style={{ height: panelHeight, width: panelWidth }}>
-            <div
-              className="chatbot-panel-width-resize-handle"
-              onMouseDown={handleWidthResizeStart}
-              role="slider"
-              aria-label="Resize chat panel width"
-              aria-valuemin={PANEL_WIDTH_MIN}
-              aria-valuemax={PANEL_WIDTH_MAX}
-              aria-valuenow={panelWidth}
-            />
-            <div className="chatbot-panel-body">
+            {!embedded && (
               <div
-                className="chatbot-panel-resize-handle"
-                onMouseDown={handleResizeStart}
+                className="chatbot-panel-width-resize-handle"
+                onMouseDown={handleWidthResizeStart}
                 role="slider"
-                aria-label="Resize chat panel height"
-                aria-valuemin={PANEL_HEIGHT_MIN}
-                aria-valuemax={PANEL_HEIGHT_MAX}
-                aria-valuenow={panelHeight}
+                aria-label="Resize chat panel width"
+                aria-valuemin={PANEL_WIDTH_MIN}
+                aria-valuemax={PANEL_WIDTH_MAX}
+                aria-valuenow={panelWidth}
               />
+            )}
+            <div className="chatbot-panel-body">
+              {!embedded && (
+                <div
+                  className="chatbot-panel-resize-handle"
+                  onMouseDown={handleResizeStart}
+                  role="slider"
+                  aria-label="Resize chat panel height"
+                  aria-valuemin={PANEL_HEIGHT_MIN}
+                  aria-valuemax={PANEL_HEIGHT_MAX}
+                  aria-valuenow={panelHeight}
+                />
+              )}
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-brand">
                   <img src={mksLogo} alt="MKS" className="chatbot-panel-logo" />
@@ -207,9 +215,11 @@ export default function App() {
                     <span className="chatbot-panel-title"><strong>Moore</strong> Kingston Smith</span>
                   </a>
                 </div>
-                <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
-                  <ChevronDownIcon />
-                </button>
+                {!embedded && (
+                  <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
+                    <ChevronDownIcon />
+                  </button>
+                )}
               </header>
               <div className="chatbot-panel-error">Error: {error}</div>
             </div>
@@ -221,38 +231,48 @@ export default function App() {
 
   return (
     <>
-      {modeIdParam && (
+      {!embedded && modeIdParam && (
         <Link to="/" className="chatbot-mode-page-home" aria-label="Back to home">
           Home
         </Link>
       )}
-      <div className="chatbot-widget">
-      {!open ? (
+      <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
+      {!open && !embedded ? (
         <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat">
           <ChatIcon />
         </button>
       ) : (
-        <div className={viewChatsPanelOpen ? 'chatbot-panel-row' : ''} style={viewChatsPanelOpen ? { height: panelHeight } : undefined}>
-          <div className="chatbot-panel" style={{ height: panelHeight, width: panelWidth }}>
+        <div
+          className={viewChatsPanelOpen ? 'chatbot-panel-row' : ''}
+          style={viewChatsPanelOpen ? { height: embedded ? '100%' : panelHeight } : undefined}
+        >
           <div
-            className="chatbot-panel-width-resize-handle"
-            onMouseDown={handleWidthResizeStart}
-            role="slider"
-            aria-label="Resize chat panel width"
-            aria-valuemin={PANEL_WIDTH_MIN}
-            aria-valuemax={PANEL_WIDTH_MAX}
-            aria-valuenow={panelWidth}
-          />
-          <div className="chatbot-panel-body">
+            className="chatbot-panel"
+            style={embedded ? { height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%' } : { height: panelHeight, width: panelWidth }}
+          >
+          {!embedded && (
             <div
-              className="chatbot-panel-resize-handle"
-              onMouseDown={handleResizeStart}
+              className="chatbot-panel-width-resize-handle"
+              onMouseDown={handleWidthResizeStart}
               role="slider"
-              aria-label="Resize chat panel height"
-              aria-valuemin={PANEL_HEIGHT_MIN}
-              aria-valuemax={PANEL_HEIGHT_MAX}
-              aria-valuenow={panelHeight}
+              aria-label="Resize chat panel width"
+              aria-valuemin={PANEL_WIDTH_MIN}
+              aria-valuemax={PANEL_WIDTH_MAX}
+              aria-valuenow={panelWidth}
             />
+          )}
+          <div className="chatbot-panel-body">
+            {!embedded && (
+              <div
+                className="chatbot-panel-resize-handle"
+                onMouseDown={handleResizeStart}
+                role="slider"
+                aria-label="Resize chat panel height"
+                aria-valuemin={PANEL_HEIGHT_MIN}
+                aria-valuemax={PANEL_HEIGHT_MAX}
+                aria-valuenow={panelHeight}
+              />
+            )}
             <header className="chatbot-panel-header">
             <div className="chatbot-panel-title-row">
               <div className="chatbot-panel-brand">
@@ -261,9 +281,11 @@ export default function App() {
                   <span className="chatbot-panel-title"><strong>Moore</strong> Kingston Smith</span>
                 </a>
               </div>
-              <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
-                <ChevronDownIcon />
-              </button>
+              {!embedded && (
+                <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
+                  <ChevronDownIcon />
+                </button>
+              )}
             </div>
             <div className="chatbot-panel-header-section">
               <div className="chatbot-panel-prompt-row">
