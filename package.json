@@ -7,7 +7,9 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
     "dev:server": "node server/index.js",
     "dev:web": "cd web && vite",
-    "build": "cd web && vite build",
+    "build:web": "cd web && vite build",
+    "build:widget": "cd web && vite build --config vite.widget.config.js",
+    "build": "npm run build:web && npm run build:widget",
     "start": "node server/index.js"
   },
   "dependencies": {

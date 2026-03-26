@@ -4,6 +4,7 @@ import Chat from './components/Chat';
 import ViewChatsPanel from './components/ViewChatsPanel';
 import mksLogo from '../images/MKS.png';
 import { getEmailFromCookie, setEmailCookie } from './utils/cookies';
+import { apiUrl } from './utils/api';
 
 const PANEL_HEIGHT_DEFAULT = 520;
 const PANEL_HEIGHT_MIN = 320;
@@ -59,7 +60,7 @@ function getOrCreateSessionId() {
   return id;
 }
 
-export default function App({ embedded = false }) {
+export default function App({ embedded = false, apiBase = '' }) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
@@ -139,7 +140,7 @@ export default function App({ embedded = false }) {
   }, [panelWidth]);
 
   useEffect(() => {
-    fetch('/api/chat-modes')
+    fetch(apiUrl(apiBase, '/api/chat-modes'))
       .then(async (res) => {
         const data = await readJsonResponse(res);
         if (!res.ok) {
@@ -169,7 +170,7 @@ export default function App({ embedded = false }) {
       })
       .catch((err) => setError(err.message || 'Failed to load chat modes'))
       .finally(() => setLoading(false));
-  }, [modeIdParam, navigate, embedded]);
+  }, [modeIdParam, navigate, embedded, apiBase]);
 
   useEffect(() => {
     if (chatModes.length === 0) return;
@@ -369,6 +370,7 @@ export default function App({ embedded = false }) {
             )}
           </div>
             <Chat
+              apiBase={apiBase}
               chatMode={chatMode}
               conversationHistory={conversationHistory}
               onHistoryChange={setConversationHistory}
@@ -398,6 +400,7 @@ export default function App({ embedded = false }) {
           </div>
           {viewChatsPanelOpen && (
             <ViewChatsPanel
+              apiBase={apiBase}
               chatMode={chatMode}
               sessionId={sessionId}
               linkedEmail={linkedEmail}

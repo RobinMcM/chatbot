@@ -58,6 +58,8 @@ app.use('/chatbot', (req, res, next) => {
   next();
 });
 app.use('/chatbot', express.static(distPath, { index: false }));
+const widgetDistPath = path.join(PROJECT_ROOT, 'web', 'dist-widget');
+app.use('/chatbot-widget', express.static(widgetDistPath, { index: false }));
 
 // GET /api/chat-modes – returns id, displayName, promptInfo per mode (from template headers)
 app.get('/api/chat-modes', (req, res) => {

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../utils/api';
 
-export default function LandingPage() {
+export default function LandingPage({ apiBase = '' }) {
   const [chatModes, setChatModes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/chat-modes')
+    fetch(apiUrl(apiBase, '/api/chat-modes'))
       .then((res) => res.json())
       .then((data) => {
         const list = Array.isArray(data?.chat_modes) ? data.chat_modes : [];

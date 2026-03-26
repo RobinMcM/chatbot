@@ -36,6 +36,7 @@ npm run start
 ```
 
 The Express server serves the built frontend from `web/dist` and the API. Open http://localhost:3000 (or your `PORT`).
+The reusable web-component bundle is served from `web/dist-widget` at `/chatbot-widget/usageflows-chatbot.js`.
 
 ## Route behavior (single-page chatbot)
 
@@ -71,6 +72,29 @@ In SharePoint, use the Embed Web Part and set the source URL to your hosted chat
   referrerpolicy="strict-origin-when-cross-origin"
 ></iframe>
 ```
+
+## Render as web component (non-iframe)
+
+For websites where script embedding is allowed, use the chatbot web component:
+
+```html
+<script src="https://your-chatbot-host/chatbot-widget/usageflows-chatbot.js" defer></script>
+<usageflows-chatbot
+  mode-id="insolvency"
+  api-base="https://your-chatbot-host"
+  embedded="true"
+></usageflows-chatbot>
+```
+
+Attributes:
+
+- `mode-id`: chat mode id from `rules/` filename (`insolvency`, `auditing`, etc.)
+- `api-base`: chatbot API origin (defaults to relative host if omitted)
+- `embedded`: `true` for direct panel render, `false` for floating launcher behavior
+
+### SharePoint note
+
+SharePoint Online typically requires a custom SPFx web part for script-based widgets. In SPFx, load `usageflows-chatbot.js` and mount `<usageflows-chatbot ...>` in the web part render output.
 
 ## Framing and security headers
 

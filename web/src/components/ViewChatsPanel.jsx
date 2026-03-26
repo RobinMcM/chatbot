@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../utils/api';
 
-export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conversationId, onClose, onLoadConversation, refreshTrigger }) {
+export default function ViewChatsPanel({ apiBase, chatMode, sessionId, linkedEmail, conversationId, onClose, onLoadConversation, refreshTrigger }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,7 +14,7 @@ export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conve
       return;
     }
     setLoading(true);
-    const url = new URL('/api/chat-history', window.location.origin);
+    const url = new URL(apiUrl(apiBase, '/api/chat-history'), window.location.origin);
     url.searchParams.set('chat_mode', chatMode.trim());
     if (linkedEmail) url.searchParams.set('email', linkedEmail);
     const headers = {};
@@ -56,7 +57,7 @@ export default function ViewChatsPanel({ chatMode, sessionId, linkedEmail, conve
     if (!clientId || !conversationId || !onLoadConversation) return;
     setLoadingConversation(conversationId);
     try {
-      const url = new URL('/api/chat-history/messages', window.location.origin);
+      const url = new URL(apiUrl(apiBase, '/api/chat-history/messages'), window.location.origin);
       url.searchParams.set('client_id', clientId);
       url.searchParams.set('conversation_id', conversationId);
       const res = await fetch(url.toString());

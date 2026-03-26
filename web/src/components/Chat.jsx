@@ -2,12 +2,14 @@ import { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatChatContent } from '../utils/formatChatContent';
+import { apiUrl } from '../utils/api';
 
 const INPUT_SECTION_HEIGHT_MIN = 56;
 const INPUT_SECTION_HEIGHT_MAX = 240;
 const INPUT_SECTION_HEIGHT_DEFAULT = 80;
 
 export default function Chat({
+  apiBase,
   chatMode,
   conversationHistory,
   onHistoryChange,
@@ -75,7 +77,7 @@ export default function Chat({
       if (conversationId) body.conversation_id = conversationId;
       const emailToSend = typeof emailInput === 'string' ? emailInput.trim() : '';
       if (emailToSend && !linkedEmail && onLinkedEmail) body.email = emailToSend;
-      const res = await fetch('/api/chat', { method: 'POST', headers, body: JSON.stringify(body) });
+      const res = await fetch(apiUrl(apiBase, '/api/chat'), { method: 'POST', headers, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || res.statusText || 'Request failed');

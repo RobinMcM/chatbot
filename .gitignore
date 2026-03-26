@@ -10,6 +10,7 @@ dist
 
 # Build output (Vite under web/)
 web/dist
+web/dist-widget
 
 # OS and editor
 .DS_Store
