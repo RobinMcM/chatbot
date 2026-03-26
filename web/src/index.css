@@ -10,20 +10,6 @@ body {
   min-height: 100vh;
 }
 
-/* Page-level Home link on mode routes (auditing, insolvency, etc.) */
-.chatbot-mode-page-home {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 9998;
-  font-size: 0.875rem;
-  color: #2563eb;
-  text-decoration: none;
-}
-.chatbot-mode-page-home:hover {
-  text-decoration: underline;
-}
-
 /* Floating chatbot widget – bottom right */
 .chatbot-widget {
   position: fixed;

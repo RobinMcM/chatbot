@@ -37,6 +37,14 @@ npm run start
 
 The Express server serves the built frontend from `web/dist` and the API. Open http://localhost:3000 (or your `PORT`).
 
+## Route behavior (single-page chatbot)
+
+- `/chatbot` opens the chatbot directly and redirects to the first available mode.
+- `/chatbot/:modeId` opens a specific mode directly.
+- `/chatbot/embed` opens embed mode and redirects to the first available mode.
+- `/chatbot/embed/:modeId` opens a specific mode in embed layout.
+- `/chatbot/view` remains available for chat history/admin review.
+
 ## Embed via iframe (SharePoint + any website)
 
 This quick-win integration mode uses the hosted chatbot page directly in an iframe.

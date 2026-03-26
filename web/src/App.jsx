@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Chat from './components/Chat';
 import ViewChatsPanel from './components/ViewChatsPanel';
 import mksLogo from '../images/MKS.png';
@@ -231,11 +231,6 @@ export default function App({ embedded = false }) {
 
   return (
     <>
-      {!embedded && modeIdParam && (
-        <Link to="/" className="chatbot-mode-page-home" aria-label="Back to home">
-          Home
-        </Link>
-      )}
       <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
       {!open && !embedded ? (
         <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat">
