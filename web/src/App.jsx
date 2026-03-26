@@ -12,6 +12,16 @@ const PANEL_WIDTH_DEFAULT = 380;
 const PANEL_WIDTH_MIN = 320;
 const PANEL_WIDTH_MAX = 640;
 
+async function readJsonResponse(res) {
+  const text = await res.text();
+  if (!text || text.trim() === '') return {};
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    throw new Error('Invalid response from server');
+  }
+}
+
 function ChatIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -130,7 +140,13 @@ export default function App({ embedded = false }) {
 
   useEffect(() => {
     fetch('/api/chat-modes')
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await readJsonResponse(res);
+        if (!res.ok) {
+          throw new Error(data?.error || res.statusText || 'Failed to load chat modes');
+        }
+        return data;
+      })
       .then((data) => {
         const modes = data.chat_modes || [];
         const list = Array.isArray(modes) ? modes : [];

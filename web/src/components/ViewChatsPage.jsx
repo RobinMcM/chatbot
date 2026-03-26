@@ -57,8 +57,11 @@ export default function ViewChatsPage() {
 
   useEffect(() => {
     fetch('/api/chat-modes')
-      .then((res) => res.json())
+      .then((res) => parseJsonResponse(res))
       .then((data) => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
         const modes = Array.isArray(data.chat_modes) ? data.chat_modes : [];
         setChatModes(modes);
       })
