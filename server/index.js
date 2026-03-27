@@ -19,6 +19,8 @@ const GATEWAY_TIMEOUT_MS = Number(process.env.GATEWAY_TIMEOUT_MS) || 120000; // 
 const PORT = Number(process.env.PORT) || 3000;
 const CHATBOT_FRAME_ANCESTORS = process.env.CHATBOT_FRAME_ANCESTORS
   || "'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com";
+const CHATBOT_CORS_ALLOWED_ORIGINS = process.env.CHATBOT_CORS_ALLOWED_ORIGINS
+  || 'https://rapidmvp.io,https://www.rapidmvp.io,https://taxflow.uk';
 
 if (!GATEWAY_API_KEY) {
   console.error('GATEWAY_API_KEY is required. Set it in .env or environment.');
@@ -27,6 +29,39 @@ if (!GATEWAY_API_KEY) {
 
 const app = express();
 app.use(express.json());
+
+function parseAllowedOrigins(raw) {
+  return String(raw || '')
+    .split(',')
+    .map((v) => v.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(Boolean);
+}
+
+function getCorsAllowOrigin(req) {
+  const requestOrigin = req.headers.origin;
+  if (!requestOrigin) return null;
+  const allowed = parseAllowedOrigins(CHATBOT_CORS_ALLOWED_ORIGINS);
+  if (allowed.includes('*')) return '*';
+  if (allowed.includes(requestOrigin)) return requestOrigin;
+  return null;
+}
+
+function applyCors(req, res) {
+  const allowOrigin = getCorsAllowOrigin(req);
+  if (!allowOrigin) return;
+  res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-Id');
+}
+
+app.use((req, res, next) => {
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
 
 function buildFrameAncestors() {
   const tokens = String(CHATBOT_FRAME_ANCESTORS)

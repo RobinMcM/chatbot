@@ -122,6 +122,7 @@ If your reverse proxy also sets CSP/X-Frame-Options, make sure it does not overr
 | `CHAT_MODEL` | OpenRouter model id for chat | `openai/gpt-5-pro` |
 | `GATEWAY_TIMEOUT_MS` | Timeout for gateway request (ms) | `120000` (2 min) |
 | `PORT` | Server port | `3000` |
+| `CHATBOT_CORS_ALLOWED_ORIGINS` | Comma-separated allowed browser origins for `/api/*` CORS | `https://rapidmvp.io,https://www.rapidmvp.io,https://taxflow.uk` |
 | `CHATBOT_FRAME_ANCESTORS` | Comma-separated iframe parent allowlist for `/chatbot` routes | `'self',https://rapidmvp.io,https://www.rapidmvp.io,https://*.sharepoint.com` |
 
 Copy `.env.example` to `.env` and set `GATEWAY_API_KEY` (and others if needed).
