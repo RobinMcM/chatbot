@@ -11,6 +11,8 @@ dist
 # Build output (Vite under web/)
 web/dist
 web/dist-widget
+.next
+evals/latest-results.json
 
 # OS and editor
 .DS_Store

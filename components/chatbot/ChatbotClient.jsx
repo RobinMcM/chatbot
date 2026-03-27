@@ -1,0 +1,304 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Chat from './Chat.jsx';
+import ViewChatsPanel from './ViewChatsPanel.jsx';
+import { getEmailFromCookie, setEmailCookie } from './utils/cookies.js';
+import { apiUrl } from './utils/api.js';
+
+const PANEL_HEIGHT_DEFAULT = 520;
+const PANEL_HEIGHT_MIN = 320;
+const PANEL_HEIGHT_MAX = 800;
+const PANEL_WIDTH_DEFAULT = 380;
+const PANEL_WIDTH_MIN = 320;
+const PANEL_WIDTH_MAX = 640;
+const SESSION_STORAGE_KEY = 'chatbot_session_id';
+
+async function readJsonResponse(res) {
+  const text = await res.text();
+  if (!text || text.trim() === '') return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid response from server');
+  }
+}
+
+function getOrCreateSessionId() {
+  if (typeof window === 'undefined') return null;
+  let id = window.localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!id) {
+    id = crypto.randomUUID?.() ?? `s-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+    window.localStorage.setItem(SESSION_STORAGE_KEY, id);
+  }
+  return id;
+}
+
+function ChatIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </svg>
+  );
+}
+
+export default function ChatbotClient({ embedded = false, apiBase = '', modeId = null }) {
+  const [chatModes, setChatModes] = useState([]);
+  const [chatMode, setChatMode] = useState('');
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [conversationId, setConversationId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`));
+  const [linkedEmail, setLinkedEmail] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return getEmailFromCookie() ?? window.localStorage.getItem('chatbot_email') ?? '';
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(embedded);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
+  const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
+  const [viewChatsPanelOpen, setViewChatsPanelOpen] = useState(false);
+  const [viewChatsRefreshTrigger, setViewChatsRefreshTrigger] = useState(0);
+  const [emailInput, setEmailInput] = useState('');
+  const resizeRef = useRef({ startY: 0, startHeight: 0 });
+  const widthResizeRef = useRef({ startX: 0, startWidth: 0 });
+  const sessionIdRef = useRef(null);
+  if (!sessionIdRef.current && typeof window !== 'undefined') sessionIdRef.current = getOrCreateSessionId();
+  const sessionId = sessionIdRef.current;
+
+  const getMaxHeight = useCallback(
+    () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - 80 : PANEL_HEIGHT_MAX),
+    []
+  );
+
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    resizeRef.current = { startY: e.clientY, startHeight: panelHeight };
+    const onMove = (moveEvent) => {
+      const dy = moveEvent.clientY - resizeRef.current.startY;
+      const maxH = getMaxHeight();
+      setPanelHeight(() => {
+        const next = resizeRef.current.startHeight - dy;
+        return Math.min(maxH, Math.max(PANEL_HEIGHT_MIN, next));
+      });
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [panelHeight, getMaxHeight]);
+
+  const handleWidthResizeStart = useCallback((e) => {
+    e.preventDefault();
+    widthResizeRef.current = { startX: e.clientX, startWidth: panelWidth };
+    const onMove = (moveEvent) => {
+      const dx = widthResizeRef.current.startX - moveEvent.clientX;
+      setPanelWidth(() => {
+        const next = widthResizeRef.current.startWidth + dx;
+        return Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, next));
+      });
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [panelWidth]);
+
+  useEffect(() => {
+    fetch(apiUrl(apiBase, '/api/chat-modes'))
+      .then(async (res) => {
+        const data = await readJsonResponse(res);
+        if (!res.ok) throw new Error(data?.error || res.statusText || 'Failed to load chat modes');
+        return data;
+      })
+      .then((data) => {
+        const modes = data.chat_modes || [];
+        const list = Array.isArray(modes) ? modes : [];
+        setChatModes(list);
+        const ids = list.map((m) => (typeof m === 'object' && m != null && 'id' in m ? m.id : m));
+        const normalized = typeof modeId === 'string' && modeId.trim() !== '' ? modeId.trim() : null;
+        const canonical = normalized ? ids.find((id) => id.toLowerCase() === normalized.toLowerCase()) || null : null;
+        if (list.length > 0) {
+          if (canonical) {
+            setChatMode(canonical);
+          } else {
+            const destination = embedded ? `/chatbot/embed/${ids[0]}` : `/chatbot/${ids[0]}`;
+            window.history.replaceState(null, '', destination);
+            setChatMode(ids[0]);
+          }
+        } else {
+          setChatMode('');
+        }
+      })
+      .catch((err) => setError(err.message || 'Failed to load chat modes'))
+      .finally(() => setLoading(false));
+  }, [modeId, embedded, apiBase]);
+
+  const handleLoadConversation = useCallback((messages, nextConversationId) => {
+    setConversationHistory(Array.isArray(messages) ? messages : []);
+    if (nextConversationId) setConversationId(nextConversationId);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
+        {!embedded && (
+          <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat" disabled>
+            <ChatIcon />
+          </button>
+        )}
+        <span className="chatbot-loading">Loading…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
+      {!open && !embedded ? (
+        <button type="button" className="chatbot-toggle" onClick={() => setOpen(true)} aria-label="Open chat">
+          <ChatIcon />
+        </button>
+      ) : (
+        <div className={viewChatsPanelOpen ? 'chatbot-panel-row' : ''} style={viewChatsPanelOpen ? { height: embedded ? '100%' : panelHeight } : undefined}>
+          <div className="chatbot-panel" style={embedded ? { height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%' } : { height: panelHeight, width: panelWidth }}>
+            {!embedded && (
+              <div className="chatbot-panel-width-resize-handle" onMouseDown={handleWidthResizeStart} role="slider" aria-label="Resize chat panel width" aria-valuemin={PANEL_WIDTH_MIN} aria-valuemax={PANEL_WIDTH_MAX} aria-valuenow={panelWidth} />
+            )}
+            <div className="chatbot-panel-body">
+              {!embedded && (
+                <div className="chatbot-panel-resize-handle" onMouseDown={handleResizeStart} role="slider" aria-label="Resize chat panel height" aria-valuemin={PANEL_HEIGHT_MIN} aria-valuemax={PANEL_HEIGHT_MAX} aria-valuenow={panelHeight} />
+              )}
+              <header className="chatbot-panel-header">
+                <div className="chatbot-panel-title-row">
+                  <div className="chatbot-panel-brand">
+                    <span className="chatbot-panel-title"><strong>Rapid</strong> MVP Assistant</span>
+                  </div>
+                  {!embedded && (
+                    <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
+                      <ChevronDownIcon />
+                    </button>
+                  )}
+                </div>
+                <div className="chatbot-panel-header-section">
+                  <div className="chatbot-panel-prompt-row">
+                    {chatMode && (
+                      <span className="chatbot-panel-mode-name" aria-label="Current chat mode">
+                        Lets Chat about{' '}
+                        {(() => {
+                          const mode = chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode);
+                          return typeof mode === 'object' && mode != null && 'displayName' in mode ? mode.displayName : chatMode;
+                        })()}
+                      </span>
+                    )}
+                    {chatMode && (
+                      <>
+                        <span className="chatbot-panel-view-chats-sep" aria-hidden="true"> · </span>
+                        <button type="button" className="chatbot-panel-view-chats-link" onClick={() => setViewChatsPanelOpen((o) => !o)} aria-expanded={viewChatsPanelOpen} aria-label="View chats">View chats</button>
+                      </>
+                    )}
+                    <div className="chatbot-panel-info-wrap">
+                      <button type="button" className="chatbot-panel-info-btn" onClick={() => setInfoOpen((o) => !o)} aria-label="Prompt information" aria-expanded={infoOpen}>
+                        <InfoIcon />
+                      </button>
+                      {infoOpen && (
+                        <div className="chatbot-panel-info-popover" role="dialog" aria-label="Prompt information">
+                          <h3 className="chatbot-panel-info-heading">Prompt Information</h3>
+                          <p className="chatbot-panel-info-text">
+                            {(() => {
+                              const mode = Array.isArray(chatModes) ? chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode) : null;
+                              const text = typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : null;
+                              return typeof text === 'string' ? text : 'No description.';
+                            })()}
+                          </p>
+                          <button type="button" className="chatbot-panel-info-close" onClick={() => setInfoOpen(false)} aria-label="Close">×</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </header>
+              {error && <div className="chatbot-panel-error">Error: {error}</div>}
+              <div className="chatbot-panel-email-section">
+                {linkedEmail ? (
+                  <p className="chat-email-linked">Saved with {linkedEmail}</p>
+                ) : (
+                  <div className="chat-email-form">
+                    <input type="email" className="chat-email-input" placeholder="Please enter your email or mobile" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} aria-label="Email" />
+                  </div>
+                )}
+              </div>
+              <Chat
+                apiBase={apiBase}
+                chatMode={chatMode}
+                conversationHistory={conversationHistory}
+                onHistoryChange={setConversationHistory}
+                onClearHistory={() => {
+                  setConversationHistory([]);
+                  setConversationId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`);
+                }}
+                promptInfo={(() => {
+                  const mode = chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode);
+                  return typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : '';
+                })()}
+                sessionId={sessionId}
+                conversationId={conversationId}
+                onConversationId={setConversationId}
+                linkedEmail={linkedEmail}
+                emailInput={emailInput}
+                setEmailInput={setEmailInput}
+                onLinkedEmail={(email) => {
+                  const value = email || '';
+                  setLinkedEmail(value);
+                  setEmailCookie(value);
+                  try { window.localStorage.setItem('chatbot_email', value); } catch {}
+                }}
+                onMessageSent={() => setViewChatsRefreshTrigger((t) => t + 1)}
+              />
+            </div>
+          </div>
+          {viewChatsPanelOpen && (
+            <ViewChatsPanel
+              apiBase={apiBase}
+              chatMode={chatMode}
+              sessionId={sessionId}
+              linkedEmail={linkedEmail}
+              conversationId={conversationId}
+              onClose={() => setViewChatsPanelOpen(false)}
+              onLoadConversation={handleLoadConversation}
+              refreshTrigger={viewChatsRefreshTrigger}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

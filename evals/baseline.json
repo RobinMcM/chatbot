@@ -1,0 +1,16 @@
+[
+  {
+    "id": "insolvency-director-duties",
+    "chat_mode": "insolvency",
+    "user_message": "My company is likely insolvent. What should a director do first in the UK?",
+    "must_include_any": ["director", "insolv", "advice"],
+    "max_latency_ms": 120000
+  },
+  {
+    "id": "auditing-scope-basic",
+    "chat_mode": "auditing",
+    "user_message": "What are the first questions to define audit scope for a medium business?",
+    "must_include_any": ["scope", "risk", "audit"],
+    "max_latency_ms": 120000
+  }
+]
