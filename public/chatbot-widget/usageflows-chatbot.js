@@ -21,6 +21,12 @@
     return trimmed.split(',').map(function (entry) { return parseOrigin(entry); }).filter(Boolean);
   }
 
+  function sanitizeSize(value, min, max) {
+    var num = Number(value);
+    if (!Number.isFinite(num)) return null;
+    return Math.max(min, Math.min(max, Math.round(num)));
+  }
+
   function createIframe(src) {
     var iframe = document.createElement('iframe');
     iframe.src = src;
@@ -99,6 +105,7 @@
       if (allowedParentOriginsRaw) params.set('allowed_parent_origins', allowedParentOriginsRaw);
       var qs = params.toString() ? ('?' + params.toString()) : '';
       var src = embedSrc || (apiBase + '/chatbot/embed' + qs);
+      var sizeStorageKey = 'usageflows-widget-size:' + src;
       var iframeOrigin = parseOrigin(src);
       var allowedParentOrigins = splitOrigins(allowedParentOriginsRaw);
       var self = this;
@@ -177,6 +184,16 @@
       panel.style.position = 'relative';
       panel.style.background = 'transparent';
       panel.style.overflow = 'visible';
+      try {
+        var savedRaw = sessionStorage.getItem(sizeStorageKey);
+        if (savedRaw) {
+          var saved = JSON.parse(savedRaw);
+          var restoredW = sanitizeSize(saved && saved.width, 320, Math.max(320, Math.min(860, window.innerWidth - 32)));
+          var restoredH = sanitizeSize(saved && saved.height, 360, Math.max(360, Math.min(900, window.innerHeight - 32)));
+          if (restoredW) panel.style.width = String(restoredW) + 'px';
+          if (restoredH) panel.style.height = String(restoredH) + 'px';
+        }
+      } catch (_) {}
 
       var iframe = createIframe(src);
       iframe.style.borderRadius = '16px';
@@ -199,6 +216,13 @@
         if (dragState.pointerId != null && typeof resizeBtn.releasePointerCapture === 'function') {
           try { resizeBtn.releasePointerCapture(dragState.pointerId); } catch (_) {}
         }
+        try {
+          var finalRect = panel.getBoundingClientRect();
+          sessionStorage.setItem(sizeStorageKey, JSON.stringify({
+            width: Math.round(finalRect.width),
+            height: Math.round(finalRect.height)
+          }));
+        } catch (_) {}
         dragState = null;
         iframe.style.pointerEvents = '';
         document.body.style.cursor = '';
