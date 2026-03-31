@@ -1,5 +1,5 @@
 import { buildMessages } from '../../../lib/server/prompt.js';
-import { loadRules } from '../../../lib/server/rules.js';
+import { DEFAULT_RULE_ID, loadRulesWithFallback } from '../../../lib/server/rules.js';
 import { executeGatewayChat } from '../../../lib/server/gateway-client.js';
 import { corsPreflight, jsonWithCors } from '../../../lib/server/cors.js';
 import { safeJson } from '../../../lib/server/http.js';
@@ -31,9 +31,7 @@ export async function POST(request) {
     ? (normalizedAllowlist.includes(modelOverride.toLowerCase()) ? modelOverride : null)
     : modelOverride;
 
-  if (!chat_mode || typeof chat_mode !== 'string') {
-    return jsonWithCors(request, { error: 'chat_mode is required' }, { status: 400 });
-  }
+  const requestedMode = typeof chat_mode === 'string' && chat_mode.trim() ? chat_mode.trim() : DEFAULT_RULE_ID;
   if (!Array.isArray(conversation_history)) {
     return jsonWithCors(request, { error: 'conversation_history must be an array' }, { status: 400 });
   }
@@ -41,12 +39,12 @@ export async function POST(request) {
     return jsonWithCors(request, { error: 'user_message is required' }, { status: 400 });
   }
 
-  const rulesResult = loadRules(chat_mode);
-  if (!rulesResult) {
-    return jsonWithCors(request, { error: 'Unknown chat mode' }, { status: 404 });
+  const rulesResolution = loadRulesWithFallback(requestedMode);
+  if (!rulesResolution) {
+    return jsonWithCors(request, { error: 'No rules template available (including fallback)' }, { status: 500 });
   }
 
-  const rulesText = rulesResult.meta?.rulesOnly ?? rulesResult.content;
+  const rulesText = rulesResolution.loaded.meta?.rulesOnly ?? rulesResolution.loaded.content;
   const messages = buildMessages(rulesText, conversation_history, user_message, optional_context);
   const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
 
@@ -61,7 +59,7 @@ export async function POST(request) {
       ? gatewayModel.trim().slice(0, 128)
       : (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
     const modelForPayload = modelToUse || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
-    const payload = { content, model: modelForPayload };
+    const payload = { content, model: modelForPayload, chat_mode: rulesResolution.ruleId };
     if (usage !== undefined) payload.usage = usage;
 
     return jsonWithCors(request, payload);

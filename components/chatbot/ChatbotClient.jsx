@@ -61,6 +61,7 @@ export default function ChatbotClient({
   embedded = false,
   apiBase = '',
   modeId = null,
+  ruleId = '',
   model = '',
   backgroundColor = '',
   contactUrl = '',
@@ -133,24 +134,15 @@ export default function ChatbotClient({
         const list = Array.isArray(modes) ? modes : [];
         setChatModes(list);
         const ids = list.map((m) => (typeof m === 'object' && m != null && 'id' in m ? m.id : m));
-        const normalized = typeof modeId === 'string' && modeId.trim() !== '' ? modeId.trim() : null;
-        const canonical = normalized ? ids.find((id) => id.toLowerCase() === normalized.toLowerCase()) || null : null;
-        if (list.length > 0) {
-          if (canonical) {
-            setChatMode(canonical);
-          } else {
-            const query = typeof window !== 'undefined' ? window.location.search : '';
-            const destination = `${embedded ? `/chatbot/embed/${ids[0]}` : `/chatbot/${ids[0]}`}${query}`;
-            window.history.replaceState(null, '', destination);
-            setChatMode(ids[0]);
-          }
-        } else {
-          setChatMode('');
-        }
+        const normalizedRule = typeof ruleId === 'string' && ruleId.trim() ? ruleId.trim() : '';
+        const normalizedLegacyMode = typeof modeId === 'string' && modeId.trim() ? modeId.trim() : '';
+        const requested = normalizedRule || normalizedLegacyMode;
+        const canonical = requested ? ids.find((id) => id.toLowerCase() === requested.toLowerCase()) || null : null;
+        setChatMode(canonical || 'default');
       })
       .catch((err) => setError(err.message || 'Failed to load chat modes'))
       .finally(() => setLoading(false));
-  }, [modeId, embedded, apiBase]);
+  }, [modeId, ruleId, apiBase]);
 
   if (loading) {
     return (

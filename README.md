@@ -45,7 +45,7 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
 
 ```html
 <iframe
-  src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc"
+  src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-pro&bg=%23f8fafc"
   title="Advisory assistant"
   width="380"
   height="560"
@@ -60,7 +60,7 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
 ```html
 <script src="https://your-chatbot-host/chatbot-widget/usageflows-chatbot.js" defer></script>
 <usageflows-chatbot
-  mode-id="insolvency"
+  rule="insolvency"
   api-base="https://your-chatbot-host"
   embedded="false"
   model="openai/gpt-5-pro"
@@ -75,7 +75,7 @@ You can also pass a single full embed URL:
 
 ```html
 <usageflows-chatbot
-  embed-src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc&contact_url=https%3A%2F%2Fclientsite.com%2Fcontact&contact_target_origin=https%3A%2F%2Fclientsite.com&allowed_parent_origins=https%3A%2F%2Fclientsite.com%2Chttps%3A%2F%2Fwww.clientsite.com"
+  embed-src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-pro&bg=%23f8fafc&contact_url=https%3A%2F%2Fclientsite.com%2Fcontact&contact_target_origin=https%3A%2F%2Fclientsite.com&allowed_parent_origins=https%3A%2F%2Fclientsite.com%2Chttps%3A%2F%2Fwww.clientsite.com"
   embedded="false"
 ></usageflows-chatbot>
 ```
@@ -102,6 +102,10 @@ Model precedence:
 
 Background override:
 - URL query `?bg=...` (or widget `bg-color` attribute), e.g. `?bg=%23f8fafc`.
+
+Rule selection:
+- URL query `?rule=...` (or widget `rule` attribute) loads `rules/<rule>.md`.
+- If `rule` is missing/invalid, chatbot falls back to `rules/default.md`.
 
 ## Cross-origin contact handoff (no database)
 

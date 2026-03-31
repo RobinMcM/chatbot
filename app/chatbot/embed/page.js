@@ -1,5 +1,11 @@
 import ChatbotClient from '../../../components/chatbot/ChatbotClient.jsx';
 
+function parseRule(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.rule === 'string' ? searchParams.rule : '';
+  return value.trim().slice(0, 64);
+}
+
 function parseModel(searchParams) {
   if (!searchParams) return '';
   const value = typeof searchParams.model === 'string' ? searchParams.model : '';
@@ -57,15 +63,22 @@ function parseAllowedParentOrigins(searchParams) {
     .filter(Boolean);
 }
 
-export default function ChatbotEmbedPage({ searchParams }) {
+async function resolveSearchParams(searchParams) {
+  const resolvedSearchParams = await Promise.resolve(searchParams);
+  return resolvedSearchParams && typeof resolvedSearchParams === 'object' ? resolvedSearchParams : {};
+}
+
+export default async function ChatbotEmbedPage({ searchParams }) {
+  const resolvedSearchParams = await resolveSearchParams(searchParams);
   return (
     <ChatbotClient
       embedded
-      model={parseModel(searchParams)}
-      backgroundColor={parseBackgroundColor(searchParams)}
-      contactUrl={parseContactUrl(searchParams)}
-      contactTargetOrigin={parseContactTargetOrigin(searchParams)}
-      allowedParentOrigins={parseAllowedParentOrigins(searchParams)}
+      ruleId={parseRule(resolvedSearchParams)}
+      model={parseModel(resolvedSearchParams)}
+      backgroundColor={parseBackgroundColor(resolvedSearchParams)}
+      contactUrl={parseContactUrl(resolvedSearchParams)}
+      contactTargetOrigin={parseContactTargetOrigin(resolvedSearchParams)}
+      allowedParentOrigins={parseAllowedParentOrigins(resolvedSearchParams)}
     />
   );
 }

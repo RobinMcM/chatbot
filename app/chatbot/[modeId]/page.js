@@ -1,5 +1,15 @@
 import ChatbotClient from '../../../components/chatbot/ChatbotClient.jsx';
 
+function parseRule(searchParams, params) {
+  if (searchParams && typeof searchParams.rule === 'string' && searchParams.rule.trim()) {
+    return searchParams.rule.trim().slice(0, 64);
+  }
+  if (params && typeof params.modeId === 'string' && params.modeId.trim()) {
+    return params.modeId.trim().slice(0, 64);
+  }
+  return '';
+}
+
 function parseModel(searchParams) {
   if (!searchParams) return '';
   const value = typeof searchParams.model === 'string' ? searchParams.model : '';
@@ -57,16 +67,27 @@ function parseAllowedParentOrigins(searchParams) {
     .filter(Boolean);
 }
 
-export default function ChatbotModePage({ params, searchParams }) {
+async function resolveRouteProps(params, searchParams) {
+  const resolvedParams = await Promise.resolve(params);
+  const resolvedSearchParams = await Promise.resolve(searchParams);
+  return {
+    params: resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {},
+    searchParams: resolvedSearchParams && typeof resolvedSearchParams === 'object' ? resolvedSearchParams : {},
+  };
+}
+
+export default async function ChatbotModePage({ params, searchParams }) {
+  const resolved = await resolveRouteProps(params, searchParams);
   return (
     <ChatbotClient
       embedded={false}
-      modeId={params.modeId}
-      model={parseModel(searchParams)}
-      backgroundColor={parseBackgroundColor(searchParams)}
-      contactUrl={parseContactUrl(searchParams)}
-      contactTargetOrigin={parseContactTargetOrigin(searchParams)}
-      allowedParentOrigins={parseAllowedParentOrigins(searchParams)}
+      ruleId={parseRule(resolved.searchParams, resolved.params)}
+      modeId={resolved.params.modeId}
+      model={parseModel(resolved.searchParams)}
+      backgroundColor={parseBackgroundColor(resolved.searchParams)}
+      contactUrl={parseContactUrl(resolved.searchParams)}
+      contactTargetOrigin={parseContactTargetOrigin(resolved.searchParams)}
+      allowedParentOrigins={parseAllowedParentOrigins(resolved.searchParams)}
     />
   );
 }

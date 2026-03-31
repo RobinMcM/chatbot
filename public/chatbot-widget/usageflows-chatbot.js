@@ -72,7 +72,8 @@
     connectedCallback() {
       if (this._mounted) return;
       this._mounted = true;
-      var modeId = (this.getAttribute('mode-id') || 'insolvency').trim();
+      var modeId = (this.getAttribute('mode-id') || '').trim();
+      var ruleId = (this.getAttribute('rule') || '').trim();
       var apiBase = normalizeBase(this.getAttribute('api-base') || '');
       var embedded = this.getAttribute('embedded') !== 'false';
       var embedSrc = (this.getAttribute('embed-src') || '').trim();
@@ -86,15 +87,17 @@
       var appId = (this.getAttribute('app-id') || '').trim();
 
       var params = new URLSearchParams();
+      var resolvedRule = ruleId || modeId || 'default';
       if (tenantId) params.set('tenant_id', tenantId);
       if (appId) params.set('app_id', appId);
+      if (resolvedRule) params.set('rule', resolvedRule);
       if (model) params.set('model', model);
       if (bgColor) params.set('bg', bgColor);
       if (contactUrl) params.set('contact_url', contactUrl);
       if (contactTargetOrigin) params.set('contact_target_origin', contactTargetOrigin);
       if (allowedParentOriginsRaw) params.set('allowed_parent_origins', allowedParentOriginsRaw);
       var qs = params.toString() ? ('?' + params.toString()) : '';
-      var src = embedSrc || (apiBase + '/chatbot/embed/' + encodeURIComponent(modeId) + qs);
+      var src = embedSrc || (apiBase + '/chatbot/embed' + qs);
       var iframeOrigin = parseOrigin(src);
       var allowedParentOrigins = splitOrigins(allowedParentOriginsRaw);
       var self = this;
