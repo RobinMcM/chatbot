@@ -375,8 +375,6 @@ body {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  position: relative;
-  padding-bottom: calc(1.35rem + var(--chat-input-height, 80px));
 }
 .chat-messages {
   flex: 1;
@@ -386,15 +384,10 @@ body {
   background: #f8fafc;
 }
 .chat-bottom {
-  margin-top: 0;
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 1.35rem;
-  z-index: 2;
   background: #fff;
 }
 .chat-placeholder {
@@ -557,11 +550,6 @@ body {
   line-height: 1.3;
   text-align: center;
   flex-shrink: 0;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
 }
 .chat-input-section {
   display: flex;

@@ -109,7 +109,7 @@ export default function Chat({
   };
 
   return (
-    <div className="chat" style={{ '--chat-input-height': `${inputSectionHeight}px` }}>
+    <div className="chat">
       <div className="chat-messages">
         {conversationHistory.length === 0 && (
           <div className="chat-placeholder">
