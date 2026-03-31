@@ -128,47 +128,49 @@ export default function Chat({
         })}
       </div>
       {error && <div className="chat-error">{error}</div>}
-      <div className="chat-input-section" style={{ height: inputSectionHeight }}>
-        <div
-          className="chat-input-resize-handle"
-          onMouseDown={handleResizeStart}
-          role="slider"
-          aria-label="Resize message input height"
-          aria-valuemin={INPUT_SECTION_HEIGHT_MIN}
-          aria-valuemax={INPUT_SECTION_HEIGHT_MAX}
-          aria-valuenow={inputSectionHeight}
-        />
-        <div className="chat-input-row">
-          <textarea
-            className="chat-input"
-            placeholder="Type a message…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-            disabled={sending || !chatMode}
-            rows={2}
-            aria-label="Type a message"
+      <div className="chat-bottom">
+        <div className="chat-input-section" style={{ height: inputSectionHeight }}>
+          <div
+            className="chat-input-resize-handle"
+            onMouseDown={handleResizeStart}
+            role="slider"
+            aria-label="Resize message input height"
+            aria-valuemin={INPUT_SECTION_HEIGHT_MIN}
+            aria-valuemax={INPUT_SECTION_HEIGHT_MAX}
+            aria-valuenow={inputSectionHeight}
           />
-          <div className="chat-input-actions">
-            <button
-              type="button"
-              className="chat-send"
-              onClick={handleSend}
-              disabled={sending || !input.trim() || !chatMode}
-            >
-              {sending ? 'Sending…' : 'Send'}
-            </button>
-            {typeof onClearHistory === 'function' && (
-              <button type="button" className="chat-clear-btn" onClick={onClearHistory} aria-label="Clear chat" title="Clear chat">
-                Clear
+          <div className="chat-input-row">
+            <textarea
+              className="chat-input"
+              placeholder="Type a message…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+              disabled={sending || !chatMode}
+              rows={2}
+              aria-label="Type a message"
+            />
+            <div className="chat-input-actions">
+              <button
+                type="button"
+                className="chat-send"
+                onClick={handleSend}
+                disabled={sending || !input.trim() || !chatMode}
+              >
+                {sending ? 'Sending…' : 'Send'}
               </button>
-            )}
+              {typeof onClearHistory === 'function' && (
+                <button type="button" className="chat-clear-btn" onClick={onClearHistory} aria-label="Clear chat" title="Clear chat">
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        <p className="chat-disclaimer" aria-label="Disclaimer">
+          Responses are AI-generated and do not constitute formal advice.
+        </p>
       </div>
-      <p className="chat-disclaimer" aria-label="Disclaimer">
-        Responses are AI-generated and do not constitute formal advice.
-      </p>
     </div>
   );
 }
