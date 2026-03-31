@@ -7,7 +7,7 @@ import { formatChatContent } from './utils/formatChatContent.js';
 import { apiUrl } from './utils/api.js';
 
 const INPUT_SECTION_HEIGHT_MIN = 56;
-const INPUT_SECTION_HEIGHT_MAX = 240;
+const INPUT_SECTION_HEIGHT_MAX = 180;
 const INPUT_SECTION_HEIGHT_DEFAULT = 80;
 
 export default function Chat({
@@ -26,12 +26,20 @@ export default function Chat({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [inputSectionHeight, setInputSectionHeight] = useState(INPUT_SECTION_HEIGHT_DEFAULT);
-  const resizeRef = useRef({ startY: 0, startHeight: 0 });
+  const resizeRef = useRef({ startY: 0, startHeight: 0, pointerId: null });
 
   const handleResizeStart = useCallback((e) => {
     e.preventDefault();
-    resizeRef.current = { startY: e.clientY, startHeight: inputSectionHeight };
+    resizeRef.current = {
+      startY: e.clientY,
+      startHeight: inputSectionHeight,
+      pointerId: typeof e.pointerId === 'number' ? e.pointerId : null,
+    };
+    if (typeof e.currentTarget?.setPointerCapture === 'function' && resizeRef.current.pointerId != null) {
+      try { e.currentTarget.setPointerCapture(resizeRef.current.pointerId); } catch {}
+    }
     const onMove = (moveEvent) => {
+      if (resizeRef.current.pointerId != null && typeof moveEvent.pointerId === 'number' && moveEvent.pointerId !== resizeRef.current.pointerId) return;
       const dy = resizeRef.current.startY - moveEvent.clientY;
       setInputSectionHeight(() => {
         const next = resizeRef.current.startHeight + dy;
@@ -39,15 +47,20 @@ export default function Chat({
       });
     };
     const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      window.removeEventListener('blur', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      resizeRef.current.pointerId = null;
     };
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+    window.addEventListener('blur', onUp);
   }, [inputSectionHeight]);
 
   const handleSend = async () => {
@@ -165,7 +178,7 @@ export default function Chat({
         <div className="chat-input-section" style={{ height: inputSectionHeight }}>
           <div
             className="chat-input-resize-handle"
-            onMouseDown={handleResizeStart}
+            onPointerDown={handleResizeStart}
             role="slider"
             aria-label="Resize message input height"
             aria-valuemin={INPUT_SECTION_HEIGHT_MIN}

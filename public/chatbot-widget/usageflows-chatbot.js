@@ -254,6 +254,12 @@
         var nextH = Math.max(360, Math.min(getMaxHeight(), dragState.startH + dy));
         panel.style.width = String(Math.round(nextW)) + 'px';
         panel.style.height = String(Math.round(nextH)) + 'px';
+        try {
+          sessionStorage.setItem(sizeStorageKey, JSON.stringify({
+            width: Math.round(nextW),
+            height: Math.round(nextH)
+          }));
+        } catch (_) {}
       });
       document.addEventListener('pointerup', stopDrag);
       document.addEventListener('pointercancel', stopDrag);
