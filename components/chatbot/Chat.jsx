@@ -45,8 +45,12 @@ export default function Chat({
         body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
+      console.log('[chatbot] /api/chat response:', data);
       if (!res.ok) throw new Error(data.error || res.statusText || 'Request failed');
       const assistantMessage = { role: 'assistant', content: data.content || '' };
+      if (!assistantMessage.content) {
+        console.warn('[chatbot] Empty assistant content returned from /api/chat', data);
+      }
       if (data.usage != null && typeof data.usage === 'object') assistantMessage.usage = data.usage;
       if (typeof data.model === 'string' && data.model.trim() !== '') assistantMessage.model = data.model.trim();
       onHistoryChange([...newHistory, assistantMessage]);
