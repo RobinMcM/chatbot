@@ -28,9 +28,13 @@
     iframe.loading = 'lazy';
     iframe.referrerPolicy = 'strict-origin-when-cross-origin';
     iframe.style.border = '0';
+    iframe.style.display = 'block';
     iframe.style.width = '100%';
     iframe.style.height = '100%';
     iframe.style.borderRadius = '16px';
+    iframe.style.setProperty('width', '100%', 'important');
+    iframe.style.setProperty('height', '100%', 'important');
+    iframe.style.setProperty('display', 'block', 'important');
     return iframe;
   }
 
@@ -180,6 +184,13 @@
       panel.appendChild(resizeBtn);
 
       var dragState = null;
+      var stopDrag = function () {
+        if (!dragState) return;
+        dragState = null;
+        iframe.style.pointerEvents = '';
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
       resizeBtn.addEventListener('mousedown', function (event) {
         event.preventDefault();
         dragState = {
@@ -188,10 +199,11 @@
           startW: panel.getBoundingClientRect().width,
           startH: panel.getBoundingClientRect().height
         };
+        iframe.style.pointerEvents = 'none';
         document.body.style.cursor = 'nwse-resize';
         document.body.style.userSelect = 'none';
       });
-      window.addEventListener('mousemove', function (event) {
+      document.addEventListener('mousemove', function (event) {
         if (!dragState) return;
         var dx = dragState.startX - event.clientX;
         var dy = dragState.startY - event.clientY;
@@ -200,12 +212,8 @@
         panel.style.width = String(Math.round(nextW)) + 'px';
         panel.style.height = String(Math.round(nextH)) + 'px';
       });
-      window.addEventListener('mouseup', function () {
-        if (!dragState) return;
-        dragState = null;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      });
+      document.addEventListener('mouseup', stopDrag);
+      window.addEventListener('blur', stopDrag);
 
       button.addEventListener('click', function () {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
