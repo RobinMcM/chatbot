@@ -56,6 +56,7 @@
     btn.style.boxShadow = '0 4px 14px rgba(15,23,42,0.18)';
     btn.style.zIndex = '3';
     btn.style.padding = '0';
+    btn.style.touchAction = 'none';
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
     return btn;
   }
@@ -187,35 +188,51 @@
       panel.appendChild(resizeBtn);
 
       var dragState = null;
+      var getMaxWidth = function () {
+        return Math.max(320, Math.min(860, window.innerWidth - 32));
+      };
+      var getMaxHeight = function () {
+        return Math.max(360, Math.min(900, window.innerHeight - 32));
+      };
       var stopDrag = function () {
         if (!dragState) return;
+        if (dragState.pointerId != null && typeof resizeBtn.releasePointerCapture === 'function') {
+          try { resizeBtn.releasePointerCapture(dragState.pointerId); } catch (_) {}
+        }
         dragState = null;
         iframe.style.pointerEvents = '';
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
       };
-      resizeBtn.addEventListener('mousedown', function (event) {
+      resizeBtn.addEventListener('pointerdown', function (event) {
         event.preventDefault();
         dragState = {
+          pointerId: typeof event.pointerId === 'number' ? event.pointerId : null,
           startX: event.clientX,
           startY: event.clientY,
           startW: panel.getBoundingClientRect().width,
           startH: panel.getBoundingClientRect().height
         };
+        if (dragState.pointerId != null && typeof resizeBtn.setPointerCapture === 'function') {
+          try { resizeBtn.setPointerCapture(dragState.pointerId); } catch (_) {}
+        }
         iframe.style.pointerEvents = 'none';
         document.body.style.cursor = 'nwse-resize';
         document.body.style.userSelect = 'none';
       });
-      document.addEventListener('mousemove', function (event) {
+      document.addEventListener('pointermove', function (event) {
         if (!dragState) return;
+        if (dragState.pointerId != null && typeof event.pointerId === 'number' && event.pointerId !== dragState.pointerId) return;
+        event.preventDefault();
         var dx = dragState.startX - event.clientX;
         var dy = dragState.startY - event.clientY;
-        var nextW = Math.max(320, Math.min(860, dragState.startW + dx));
-        var nextH = Math.max(360, Math.min(window.innerHeight - 32, dragState.startH + dy));
+        var nextW = Math.max(320, Math.min(getMaxWidth(), dragState.startW + dx));
+        var nextH = Math.max(360, Math.min(getMaxHeight(), dragState.startH + dy));
         panel.style.width = String(Math.round(nextW)) + 'px';
         panel.style.height = String(Math.round(nextH)) + 'px';
       });
-      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('pointerup', stopDrag);
+      document.addEventListener('pointercancel', stopDrag);
       window.addEventListener('blur', stopDrag);
 
       button.addEventListener('click', function () {

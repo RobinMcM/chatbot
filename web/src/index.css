@@ -453,6 +453,7 @@ body {
   border-radius: 10px;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -480,6 +481,25 @@ body {
 }
 .chat-message-content--markdown {
   white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.chat-message-content--markdown * {
+  max-width: 100%;
+}
+.chat-message-content--markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+}
+.chat-message-content--markdown code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-message-content--markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .chat-message-content--markdown h1,
 .chat-message-content--markdown h2,
