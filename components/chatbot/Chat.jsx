@@ -100,7 +100,7 @@ export default function Chat({
   };
 
   return (
-    <div className="chat">
+    <div className="chat" style={{ '--chat-input-height': `${inputSectionHeight}px` }}>
       <div className="chat-messages">
         {conversationHistory.length === 0 && (
           <div className="chat-placeholder">
@@ -167,10 +167,10 @@ export default function Chat({
             </div>
           </div>
         </div>
-        <p className="chat-disclaimer" aria-label="Disclaimer">
-          Responses are AI-generated and do not constitute formal advice.
-        </p>
       </div>
+      <p className="chat-disclaimer" aria-label="Disclaimer">
+        Responses are AI-generated and do not constitute formal advice.
+      </p>
     </div>
   );
 }
