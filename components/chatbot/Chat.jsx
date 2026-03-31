@@ -18,7 +18,6 @@ export default function Chat({
   onClearHistory,
   promptInfo,
   model,
-  backgroundColor,
   contactUrl = '',
   contactTargetOrigin = '',
   allowedParentOrigins = [],
@@ -134,7 +133,7 @@ export default function Chat({
   }, [allowedParentOrigins, chatMode, contactTargetOrigin, contactUrl, conversationHistory, model]);
 
   return (
-    <div className="chat" style={backgroundColor ? { '--chat-messages-bg': backgroundColor } : undefined}>
+    <div className="chat">
       <div className="chat-messages">
         {conversationHistory.length === 0 && (
           <div className="chat-placeholder">

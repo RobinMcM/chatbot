@@ -78,6 +78,7 @@ export default function ChatbotClient({
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
+  const panelBodyStyle = backgroundColor ? { '--chat-accent-bg': backgroundColor } : undefined;
 
   const getMaxHeight = useCallback(
     () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - 80 : PANEL_HEIGHT_MAX),
@@ -184,7 +185,7 @@ export default function ChatbotClient({
                 <ResizeCornerIcon />
               </button>
             )}
-            <div className="chatbot-panel-body">
+            <div className="chatbot-panel-body" style={panelBodyStyle}>
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-title-row">
                   <div className="chatbot-panel-brand">
@@ -240,7 +241,6 @@ export default function ChatbotClient({
                   return typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : '';
                 })()}
                 model={model}
-                backgroundColor={backgroundColor}
                 contactUrl={contactUrl}
                 contactTargetOrigin={contactTargetOrigin}
                 allowedParentOrigins={allowedParentOrigins}
