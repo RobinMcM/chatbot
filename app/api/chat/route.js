@@ -30,6 +30,16 @@ export async function POST(request) {
   const selectedModel = modelOverride && normalizedAllowlist.length > 0
     ? (normalizedAllowlist.includes(modelOverride.toLowerCase()) ? modelOverride : null)
     : modelOverride;
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+
+  console.log('[chatbot-api] request received', {
+    requestId,
+    requestedMode: typeof chat_mode === 'string' ? chat_mode : null,
+    selectedModel: selectedModel || null,
+    allowlistCount: normalizedAllowlist.length,
+    conversationCount: Array.isArray(conversation_history) ? conversation_history.length : null,
+    userMessageLength: typeof user_message === 'string' ? user_message.length : null,
+  });
 
   const requestedMode = typeof chat_mode === 'string' && chat_mode.trim() ? chat_mode.trim() : DEFAULT_RULE_ID;
   if (!Array.isArray(conversation_history)) {
@@ -46,8 +56,6 @@ export async function POST(request) {
 
   const rulesText = rulesResolution.loaded.meta?.rulesOnly ?? rulesResolution.loaded.content;
   const messages = buildMessages(rulesText, conversation_history, user_message, optional_context);
-  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
-
   try {
     const { content, usage, model: gatewayModel } = await executeGatewayChat({
       messages,
@@ -61,10 +69,23 @@ export async function POST(request) {
     const modelForPayload = modelToUse || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
     const payload = { content, model: modelForPayload, chat_mode: rulesResolution.ruleId };
     if (usage !== undefined) payload.usage = usage;
+    console.log('[chatbot-api] response success', {
+      requestId,
+      resolvedRule: rulesResolution.ruleId,
+      model: payload.model || null,
+      contentLength: typeof payload.content === 'string' ? payload.content.length : 0,
+    });
 
     return jsonWithCors(request, payload);
   } catch (err) {
     const status = err.status || 502;
+    console.error('[chatbot-api] response error', {
+      requestId,
+      status,
+      message: err.message || 'Gateway request failed',
+      resolvedRule: rulesResolution.ruleId,
+      selectedModel: selectedModel || null,
+    });
     return jsonWithCors(request, { error: err.message || 'Gateway request failed' }, { status });
   }
 }

@@ -52,12 +52,19 @@ export default function Chat({
         user_message: userMessage,
       };
       if (typeof model === 'string' && model.trim() !== '') body.model = model.trim();
+      console.log('[chatbot] sending /api/chat', {
+        chat_mode: body.chat_mode,
+        history_count: Array.isArray(body.conversation_history) ? body.conversation_history.length : 0,
+        user_message_length: typeof body.user_message === 'string' ? body.user_message.length : 0,
+        model: body.model || null,
+      });
       const res = await fetch(apiUrl(apiBase, '/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
+      console.log('[chatbot] /api/chat response', { status: res.status, ok: res.ok, data });
       if (typeof data.error === 'string' && data.error.trim() !== '') {
         throw new Error(data.error.trim());
       }
@@ -68,6 +75,7 @@ export default function Chat({
       onHistoryChange([...newHistory, assistantMessage]);
     } catch (err) {
       const message = err?.message || 'Failed to send';
+      console.error('[chatbot] send failed', { message, chatMode, model: model || null });
       if (isInsufficientCreditsError(message)) {
         onHistoryChange([...newHistory, { role: 'assistant', content: INSUFFICIENT_CREDITS_CHAT_MESSAGE }]);
         setError(null);
