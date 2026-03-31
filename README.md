@@ -65,6 +65,9 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
   embedded="false"
   model="openai/gpt-5-pro"
   bg-color="#f8fafc"
+  contact-url="https://clientsite.com/contact"
+  contact-target-origin="https://clientsite.com"
+  allowed-parent-origins="https://clientsite.com,https://www.clientsite.com"
 ></usageflows-chatbot>
 ```
 
@@ -72,7 +75,7 @@ You can also pass a single full embed URL:
 
 ```html
 <usageflows-chatbot
-  embed-src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc"
+  embed-src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc&contact_url=https%3A%2F%2Fclientsite.com%2Fcontact&contact_target_origin=https%3A%2F%2Fclientsite.com&allowed_parent_origins=https%3A%2F%2Fclientsite.com%2Chttps%3A%2F%2Fwww.clientsite.com"
   embedded="false"
 ></usageflows-chatbot>
 ```
@@ -99,6 +102,51 @@ Model precedence:
 
 Background override:
 - URL query `?bg=...` (or widget `bg-color` attribute), e.g. `?bg=%23f8fafc`.
+
+## Cross-origin contact handoff (no database)
+
+- User clicks **Contact** in chatbot.
+- Chatbot sends a secure `postMessage` payload to the parent page (`type: usageflows:contactPayload`).
+- Widget script stores payload in `sessionStorage` and redirects to `contact-url`.
+- Contact page reads payload from storage and pre-fills the submit form.
+
+Suggested contact-page prefill snippet:
+
+```html
+<script>
+  (function () {
+    var key = 'usageflows_contact_payload';
+    var raw = sessionStorage.getItem(key);
+    if (!raw) return;
+    try {
+      var payload = JSON.parse(raw);
+      if (!payload || payload.type !== 'usageflows:contactPayload') return;
+      var transcriptText = (Array.isArray(payload.transcript) ? payload.transcript : [])
+        .map(function (m) { return String(m.role || '') + ': ' + String(m.content || ''); })
+        .join('\n\n');
+      var summary = typeof payload.summary === 'string' ? payload.summary : '';
+      var field = document.querySelector('#chatTranscript');
+      if (field) field.value = (summary ? summary + '\n\n' : '') + transcriptText;
+
+      var form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', function () {
+          sessionStorage.removeItem(key);
+        }, { once: true });
+      }
+    } catch (_) {}
+  })();
+</script>
+```
+
+Cross-origin verification checklist:
+
+1. Load widget on client origin (for example `https://clientsite.com`) and send chat messages.
+2. Click **Contact** and confirm browser navigates to `contact-url?chat_prefill=1`.
+3. Confirm contact form field (for example `#chatTranscript`) is prefilled from session payload.
+4. Submit form and confirm `sessionStorage.getItem('usageflows_contact_payload')` is cleared.
+5. Negative test: set `allowed-parent-origins` to a different origin and confirm no redirect happens.
+6. Negative test: set `contact-target-origin` that does not match `contact-url` and confirm no redirect happens.
 
 ## Testing and evals
 

@@ -19,6 +19,9 @@ export default function Chat({
   promptInfo,
   model,
   backgroundColor,
+  contactUrl = '',
+  contactTargetOrigin = '',
+  allowedParentOrigins = [],
 }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -82,6 +85,53 @@ export default function Chat({
       setSending(false);
     }
   };
+
+  const handleContact = useCallback(() => {
+    if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
+      setError('Send at least one message before continuing to contact.');
+      return;
+    }
+    const referrerOrigin = (() => {
+      try {
+        return document.referrer ? new URL(document.referrer).origin : '';
+      } catch {
+        return '';
+      }
+    })();
+    const targetOrigin = (contactTargetOrigin || referrerOrigin || '*').trim();
+    const normalizedAllowlist = Array.isArray(allowedParentOrigins)
+      ? allowedParentOrigins.map((origin) => String(origin).trim()).filter(Boolean)
+      : [];
+    if (normalizedAllowlist.length > 0 && targetOrigin !== '*' && !normalizedAllowlist.includes(targetOrigin)) {
+      setError('Unable to share chat with this page. Origin is not allowed.');
+      return;
+    }
+    const transcript = conversationHistory
+      .filter((msg) => msg && typeof msg.content === 'string' && (msg.role === 'user' || msg.role === 'assistant'))
+      .map((msg) => ({
+        role: msg.role,
+        content: msg.content.slice(0, 4000),
+      }));
+    const summary = transcript
+      .slice(-6)
+      .map((msg) => `${msg.role}: ${msg.content}`)
+      .join('\n\n')
+      .slice(0, 6000);
+    const payload = {
+      type: 'usageflows:contactPayload',
+      version: 1,
+      source: 'usageflows-chatbot',
+      modeId: chatMode,
+      transcript,
+      summary,
+      timestamp: Date.now(),
+      leadContext: {
+        model: typeof model === 'string' ? model : '',
+        contactUrl: typeof contactUrl === 'string' ? contactUrl : '',
+      },
+    };
+    window.parent.postMessage(payload, targetOrigin);
+  }, [allowedParentOrigins, chatMode, contactTargetOrigin, contactUrl, conversationHistory, model]);
 
   return (
     <div className="chat" style={backgroundColor ? { '--chat-messages-bg': backgroundColor } : undefined}>
@@ -148,6 +198,15 @@ export default function Chat({
                   Clear
                 </button>
               )}
+              <button
+                type="button"
+                className="chat-contact-btn"
+                onClick={handleContact}
+                disabled={sending || conversationHistory.length === 0}
+                aria-label="Continue to contact page"
+              >
+                Contact
+              </button>
             </div>
           </div>
         </div>

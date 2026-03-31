@@ -5,6 +5,22 @@
     return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
   }
 
+  function parseOrigin(value) {
+    var trimmed = (value || '').trim();
+    if (!trimmed) return '';
+    try {
+      return new URL(trimmed).origin;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function splitOrigins(value) {
+    var trimmed = String(value || '').trim();
+    if (!trimmed) return [];
+    return trimmed.split(',').map(function (entry) { return parseOrigin(entry); }).filter(Boolean);
+  }
+
   function createIframe(src) {
     var iframe = document.createElement('iframe');
     iframe.src = src;
@@ -41,6 +57,14 @@
   }
 
   class UsageflowsChatbotElement extends HTMLElement {
+    disconnectedCallback() {
+      if (this._onMessage) {
+        window.removeEventListener('message', this._onMessage);
+        this._onMessage = null;
+      }
+      this._mounted = false;
+    }
+
     connectedCallback() {
       if (this._mounted) return;
       this._mounted = true;
@@ -50,6 +74,10 @@
       var embedSrc = (this.getAttribute('embed-src') || '').trim();
       var model = (this.getAttribute('model') || '').trim();
       var bgColor = (this.getAttribute('bg-color') || '').trim();
+      var contactUrl = (this.getAttribute('contact-url') || '').trim();
+      var contactTargetOrigin = parseOrigin(this.getAttribute('contact-target-origin') || '');
+      var allowedParentOriginsRaw = (this.getAttribute('allowed-parent-origins') || '').trim();
+      var storageKey = (this.getAttribute('contact-storage-key') || 'usageflows_contact_payload').trim();
       var tenantId = (this.getAttribute('tenant-id') || '').trim();
       var appId = (this.getAttribute('app-id') || '').trim();
 
@@ -58,14 +86,60 @@
       if (appId) params.set('app_id', appId);
       if (model) params.set('model', model);
       if (bgColor) params.set('bg', bgColor);
+      if (contactUrl) params.set('contact_url', contactUrl);
+      if (contactTargetOrigin) params.set('contact_target_origin', contactTargetOrigin);
+      if (allowedParentOriginsRaw) params.set('allowed_parent_origins', allowedParentOriginsRaw);
       var qs = params.toString() ? ('?' + params.toString()) : '';
       var src = embedSrc || (apiBase + '/chatbot/embed/' + encodeURIComponent(modeId) + qs);
+      var iframeOrigin = parseOrigin(src);
+      var allowedParentOrigins = splitOrigins(allowedParentOriginsRaw);
+      var self = this;
+
+      function mountBridgeForIframe(iframeEl) {
+        self._onMessage = function (event) {
+          if (!iframeEl || !iframeEl.contentWindow) return;
+          if (event.source !== iframeEl.contentWindow) return;
+          if (iframeOrigin && event.origin !== iframeOrigin) return;
+
+          var data = event.data || {};
+          if (!data || data.type !== 'usageflows:contactPayload' || data.source !== 'usageflows-chatbot') return;
+
+          var payload = {
+            type: 'usageflows:contactPayload',
+            version: Number(data.version) || 1,
+            source: 'usageflows-chatbot',
+            modeId: typeof data.modeId === 'string' ? data.modeId : '',
+            timestamp: Number(data.timestamp) || Date.now(),
+            summary: typeof data.summary === 'string' ? data.summary : '',
+            transcript: Array.isArray(data.transcript) ? data.transcript : [],
+            leadContext: data.leadContext && typeof data.leadContext === 'object' ? data.leadContext : {},
+            chatbotOrigin: event.origin,
+          };
+
+          try {
+            sessionStorage.setItem(storageKey, JSON.stringify(payload));
+          } catch (_) {}
+
+          var nextUrl = contactUrl || (payload.leadContext && typeof payload.leadContext.contactUrl === 'string' ? payload.leadContext.contactUrl : '');
+          if (!nextUrl) return;
+          try {
+            var parsed = new URL(nextUrl, window.location.origin);
+            if (contactTargetOrigin && parsed.origin !== contactTargetOrigin) return;
+            if (allowedParentOrigins.length > 0 && allowedParentOrigins.indexOf(window.location.origin) === -1) return;
+            parsed.searchParams.set('chat_prefill', '1');
+            window.location.assign(parsed.toString());
+          } catch (_) {}
+        };
+        window.addEventListener('message', self._onMessage);
+      }
 
       if (embedded) {
         this.style.display = 'block';
         this.style.width = this.style.width || '380px';
         this.style.height = this.style.height || '560px';
-        this.appendChild(createIframe(src));
+        var embeddedIframe = createIframe(src);
+        this.appendChild(embeddedIframe);
+        mountBridgeForIframe(embeddedIframe);
         return;
       }
 
@@ -100,6 +174,7 @@
       iframe.style.borderRadius = '16px';
       iframe.style.boxShadow = '0 12px 36px rgba(0,0,0,0.2)';
       panel.appendChild(iframe);
+      mountBridgeForIframe(iframe);
 
       var resizeBtn = createResizeHandle();
       panel.appendChild(resizeBtn);

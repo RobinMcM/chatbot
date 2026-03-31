@@ -57,7 +57,16 @@ function ResizeCornerIcon() {
   );
 }
 
-export default function ChatbotClient({ embedded = false, apiBase = '', modeId = null, model = '', backgroundColor = '' }) {
+export default function ChatbotClient({
+  embedded = false,
+  apiBase = '',
+  modeId = null,
+  model = '',
+  backgroundColor = '',
+  contactUrl = '',
+  contactTargetOrigin = '',
+  allowedParentOrigins = [],
+}) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
@@ -240,6 +249,9 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
                 })()}
                 model={model}
                 backgroundColor={backgroundColor}
+                contactUrl={contactUrl}
+                contactTargetOrigin={contactTargetOrigin}
+                allowedParentOrigins={allowedParentOrigins}
               />
             </div>
           </div>

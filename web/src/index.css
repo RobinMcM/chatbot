@@ -643,7 +643,8 @@ body {
   gap: 0.35rem;
 }
 .chat-input-actions .chat-send,
-.chat-input-actions .chat-clear-btn {
+.chat-input-actions .chat-clear-btn,
+.chat-input-actions .chat-contact-btn {
   width: 100%;
   box-sizing: border-box;
 }
@@ -698,6 +699,24 @@ body {
   filter: brightness(1.08);
 }
 .chat-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.chat-contact-btn {
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  background: #0f766e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.chat-contact-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.chat-contact-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

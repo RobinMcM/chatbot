@@ -16,6 +16,56 @@ function parseBackgroundColor(searchParams) {
   return isHex || isCssFunc || isKeyword ? value : '';
 }
 
+function parseContactUrl(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.contact_url === 'string' ? searchParams.contact_url.trim() : '';
+  if (!value) return '';
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function parseContactTargetOrigin(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.contact_target_origin === 'string' ? searchParams.contact_target_origin.trim() : '';
+  if (!value) return '';
+  try {
+    return new URL(value).origin;
+  } catch {
+    return '';
+  }
+}
+
+function parseAllowedParentOrigins(searchParams) {
+  if (!searchParams) return [];
+  const value = typeof searchParams.allowed_parent_origins === 'string' ? searchParams.allowed_parent_origins : '';
+  if (!value.trim()) return [];
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      try {
+        return new URL(entry).origin;
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean);
+}
+
 export default function ChatbotEmbedPage({ searchParams }) {
-  return <ChatbotClient embedded model={parseModel(searchParams)} backgroundColor={parseBackgroundColor(searchParams)} />;
+  return (
+    <ChatbotClient
+      embedded
+      model={parseModel(searchParams)}
+      backgroundColor={parseBackgroundColor(searchParams)}
+      contactUrl={parseContactUrl(searchParams)}
+      contactTargetOrigin={parseContactTargetOrigin(searchParams)}
+      allowedParentOrigins={parseAllowedParentOrigins(searchParams)}
+    />
+  );
 }
