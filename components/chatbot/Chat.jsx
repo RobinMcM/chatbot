@@ -1,14 +1,10 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatChatContent } from './utils/formatChatContent.js';
 import { apiUrl } from './utils/api.js';
-
-const INPUT_SECTION_HEIGHT_MIN = 56;
-const INPUT_SECTION_HEIGHT_MAX = 180;
-const INPUT_SECTION_HEIGHT_DEFAULT = 80;
 
 export default function Chat({
   apiBase,
@@ -25,43 +21,6 @@ export default function Chat({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
-  const [inputSectionHeight, setInputSectionHeight] = useState(INPUT_SECTION_HEIGHT_DEFAULT);
-  const resizeRef = useRef({ startY: 0, startHeight: 0, pointerId: null });
-
-  const handleResizeStart = useCallback((e) => {
-    e.preventDefault();
-    resizeRef.current = {
-      startY: e.clientY,
-      startHeight: inputSectionHeight,
-      pointerId: typeof e.pointerId === 'number' ? e.pointerId : null,
-    };
-    if (typeof e.currentTarget?.setPointerCapture === 'function' && resizeRef.current.pointerId != null) {
-      try { e.currentTarget.setPointerCapture(resizeRef.current.pointerId); } catch {}
-    }
-    const onMove = (moveEvent) => {
-      if (resizeRef.current.pointerId != null && typeof moveEvent.pointerId === 'number' && moveEvent.pointerId !== resizeRef.current.pointerId) return;
-      const dy = resizeRef.current.startY - moveEvent.clientY;
-      setInputSectionHeight(() => {
-        const next = resizeRef.current.startHeight + dy;
-        return Math.min(INPUT_SECTION_HEIGHT_MAX, Math.max(INPUT_SECTION_HEIGHT_MIN, next));
-      });
-    };
-    const onUp = () => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onUp);
-      window.removeEventListener('blur', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      resizeRef.current.pointerId = null;
-    };
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
-    window.addEventListener('blur', onUp);
-  }, [inputSectionHeight]);
 
   const handleSend = async () => {
     const userMessage = input.trim();
@@ -175,16 +134,7 @@ export default function Chat({
       </div>
       {error && <div className="chat-error">{error}</div>}
       <div className="chat-bottom">
-        <div className="chat-input-section" style={{ height: inputSectionHeight }}>
-          <div
-            className="chat-input-resize-handle"
-            onPointerDown={handleResizeStart}
-            role="slider"
-            aria-label="Resize message input height"
-            aria-valuemin={INPUT_SECTION_HEIGHT_MIN}
-            aria-valuemax={INPUT_SECTION_HEIGHT_MAX}
-            aria-valuenow={inputSectionHeight}
-          />
+        <div className="chat-input-section">
           <div className="chat-input-row">
             <textarea
               className="chat-input"
@@ -224,7 +174,7 @@ export default function Chat({
         </div>
       </div>
       <p className="chat-disclaimer" aria-label="Disclaimer">
-        Responses are AI-generated and do not constitute formal advice. [1]
+        Responses are AI-generated and do not constitute formal advice. [2]
       </p>
     </div>
   );
