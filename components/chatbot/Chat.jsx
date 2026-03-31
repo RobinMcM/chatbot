@@ -224,7 +224,7 @@ export default function Chat({
         </div>
       </div>
       <p className="chat-disclaimer" aria-label="Disclaimer">
-        Responses are AI-generated and do not constitute formal advice.
+        Responses are AI-generated and do not constitute formal advice. [1]
       </p>
     </div>
   );
