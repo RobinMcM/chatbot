@@ -34,27 +34,6 @@ function ChevronDownIcon() {
   );
 }
 
-function ExpandIcon({ expanded = false }) {
-  if (expanded) {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <polyline points="15 3 21 3 21 9" />
-        <polyline points="9 21 3 21 3 15" />
-        <line x1="21" y1="3" x2="14" y2="10" />
-        <line x1="3" y1="21" x2="10" y2="14" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="9 3 3 3 3 9" />
-      <polyline points="15 21 21 21 21 15" />
-      <line x1="3" y1="3" x2="10" y2="10" />
-      <line x1="21" y1="21" x2="14" y2="14" />
-    </svg>
-  );
-}
-
 function InfoIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -72,7 +51,6 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(embedded);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
   const resizeRef = useRef({ startY: 0, startHeight: 0 });
 
@@ -161,27 +139,16 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
             style={
               embedded
                 ? { height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%' }
-                : expanded
-                  ? { height: 'calc(100vh - 2rem)', width: 'calc(100vw - 2rem)', maxHeight: '900px', maxWidth: '960px' }
-                  : { height: panelHeight, width: 380 }
+                : { height: panelHeight, width: 380 }
             }
           >
             <div className="chatbot-panel-body">
-              {!embedded && !expanded && (
+              {!embedded && (
                 <div className="chatbot-panel-resize-handle" onMouseDown={handleResizeStart} role="slider" aria-label="Resize chat panel height" aria-valuemin={PANEL_HEIGHT_MIN} aria-valuemax={PANEL_HEIGHT_MAX} aria-valuenow={panelHeight} />
               )}
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-title-row">
                   <div className="chatbot-panel-brand">
-                    <button
-                      type="button"
-                      className="chatbot-panel-expand"
-                      onClick={() => setExpanded((prev) => !prev)}
-                      aria-label={expanded ? 'Collapse chat panel' : 'Expand chat panel'}
-                      title={expanded ? 'Collapse' : 'Expand'}
-                    >
-                      <ExpandIcon expanded={expanded} />
-                    </button>
                     <span className="chatbot-panel-title"><strong>Rapid</strong> MVP Assistant</span>
                   </div>
                   {!embedded && (

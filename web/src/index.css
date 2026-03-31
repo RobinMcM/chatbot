@@ -168,22 +168,6 @@ body {
   gap: 0.5rem;
   min-width: 0;
 }
-.chatbot-panel-expand {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.chatbot-panel-expand:hover {
-  background: rgba(255,255,255,0.35);
-}
 .chatbot-panel-logo {
   height: 28px;
   width: auto;
@@ -273,7 +257,12 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  width: 100%;
   gap: 0.5rem;
+}
+.chatbot-panel-mode-name {
+  flex: 1;
+  min-width: 0;
 }
 .chatbot-panel-prompt-row .chatbot-panel-info-wrap {
   margin-left: auto;
