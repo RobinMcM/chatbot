@@ -18,6 +18,28 @@
     return iframe;
   }
 
+  function createResizeHandle() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = 'Drag to resize';
+    btn.setAttribute('aria-label', 'Resize chat panel');
+    btn.style.position = 'absolute';
+    btn.style.top = '-10px';
+    btn.style.left = '-10px';
+    btn.style.width = '28px';
+    btn.style.height = '28px';
+    btn.style.border = '1px solid #cbd5e1';
+    btn.style.borderRadius = '999px';
+    btn.style.background = '#fff';
+    btn.style.color = '#475569';
+    btn.style.cursor = 'nwse-resize';
+    btn.style.boxShadow = '0 4px 14px rgba(15,23,42,0.18)';
+    btn.style.zIndex = '3';
+    btn.style.padding = '0';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
+    return btn;
+  }
+
   class UsageflowsChatbotElement extends HTMLElement {
     connectedCallback() {
       if (this._mounted) return;
@@ -70,11 +92,45 @@
       panel.style.width = '380px';
       panel.style.height = '560px';
       panel.style.marginBottom = '12px';
-      panel.style.background = '#fff';
-      panel.style.borderRadius = '16px';
-      panel.style.overflow = 'hidden';
-      panel.style.boxShadow = '0 12px 36px rgba(0,0,0,0.2)';
-      panel.appendChild(createIframe(src));
+      panel.style.position = 'relative';
+      panel.style.background = 'transparent';
+      panel.style.overflow = 'visible';
+
+      var iframe = createIframe(src);
+      iframe.style.borderRadius = '16px';
+      iframe.style.boxShadow = '0 12px 36px rgba(0,0,0,0.2)';
+      panel.appendChild(iframe);
+
+      var resizeBtn = createResizeHandle();
+      panel.appendChild(resizeBtn);
+
+      var dragState = null;
+      resizeBtn.addEventListener('mousedown', function (event) {
+        event.preventDefault();
+        dragState = {
+          startX: event.clientX,
+          startY: event.clientY,
+          startW: panel.getBoundingClientRect().width,
+          startH: panel.getBoundingClientRect().height
+        };
+        document.body.style.cursor = 'nwse-resize';
+        document.body.style.userSelect = 'none';
+      });
+      window.addEventListener('mousemove', function (event) {
+        if (!dragState) return;
+        var dx = dragState.startX - event.clientX;
+        var dy = dragState.startY - event.clientY;
+        var nextW = Math.max(320, Math.min(860, dragState.startW + dx));
+        var nextH = Math.max(360, Math.min(window.innerHeight - 32, dragState.startH + dy));
+        panel.style.width = String(Math.round(nextW)) + 'px';
+        panel.style.height = String(Math.round(nextH)) + 'px';
+      });
+      window.addEventListener('mouseup', function () {
+        if (!dragState) return;
+        dragState = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      });
 
       button.addEventListener('click', function () {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';

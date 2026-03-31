@@ -62,7 +62,7 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
 <usageflows-chatbot
   mode-id="insolvency"
   api-base="https://your-chatbot-host"
-  embedded="true"
+  embedded="false"
   model="openai/gpt-5-pro"
   bg-color="#f8fafc"
 ></usageflows-chatbot>
@@ -73,7 +73,7 @@ You can also pass a single full embed URL:
 ```html
 <usageflows-chatbot
   embed-src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc"
-  embedded="true"
+  embedded="false"
 ></usageflows-chatbot>
 ```
 

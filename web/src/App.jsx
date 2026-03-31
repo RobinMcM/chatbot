@@ -48,6 +48,17 @@ function InfoIcon() {
   );
 }
 
+function ResizeCornerIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3 9 3 3 9 3" />
+      <line x1="3" y1="3" x2="10" y2="10" />
+      <line x1="7" y1="3" x2="10" y2="6" />
+      <line x1="3" y1="7" x2="6" y2="10" />
+    </svg>
+  );
+}
+
 const SESSION_STORAGE_KEY = 'chatbot_session_id';
 
 function getOrCreateSessionId() {
@@ -81,8 +92,7 @@ export default function App({ embedded = false, apiBase = '' }) {
   const [viewChatsPanelOpen, setViewChatsPanelOpen] = useState(false);
   const [viewChatsRefreshTrigger, setViewChatsRefreshTrigger] = useState(0);
   const [emailInput, setEmailInput] = useState('');
-  const resizeRef = useRef({ startY: 0, startHeight: 0 });
-  const widthResizeRef = useRef({ startX: 0, startWidth: 0 });
+  const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
 
   const handleLoadConversation = useCallback((messages, conversationId) => {
     setConversationHistory(Array.isArray(messages) ? messages : []);
@@ -94,37 +104,28 @@ export default function App({ embedded = false, apiBase = '' }) {
 
   const getMaxHeight = useCallback(() => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - 80 : PANEL_HEIGHT_MAX), []);
 
+  const getMaxWidth = useCallback(() => Math.min(PANEL_WIDTH_MAX, typeof window !== 'undefined' ? window.innerWidth - 32 : PANEL_WIDTH_MAX), []);
+
   const handleResizeStart = useCallback((e) => {
     e.preventDefault();
-    resizeRef.current = { startY: e.clientY, startHeight: panelHeight };
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: panelWidth,
+      startHeight: panelHeight,
+    };
     const onMove = (moveEvent) => {
-      const dy = moveEvent.clientY - resizeRef.current.startY;
+      const dx = resizeRef.current.startX - moveEvent.clientX;
+      const dy = resizeRef.current.startY - moveEvent.clientY;
       const maxH = getMaxHeight();
+      const maxW = getMaxWidth();
       setPanelHeight((h) => {
-        const next = resizeRef.current.startHeight - dy;
+        const next = resizeRef.current.startHeight + dy;
         return Math.min(maxH, Math.max(PANEL_HEIGHT_MIN, next));
       });
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [panelHeight, getMaxHeight]);
-
-  const handleWidthResizeStart = useCallback((e) => {
-    e.preventDefault();
-    widthResizeRef.current = { startX: e.clientX, startWidth: panelWidth };
-    const onMove = (moveEvent) => {
-      const dx = widthResizeRef.current.startX - moveEvent.clientX;
       setPanelWidth((w) => {
-        const next = widthResizeRef.current.startWidth + dx;
-        return Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, next));
+        const next = resizeRef.current.startWidth + dx;
+        return Math.min(maxW, Math.max(PANEL_WIDTH_MIN, next));
       });
     };
     const onUp = () => {
@@ -133,11 +134,11 @@ export default function App({ embedded = false, apiBase = '' }) {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-    document.body.style.cursor = 'ew-resize';
+    document.body.style.cursor = 'nwse-resize';
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [panelWidth]);
+  }, [panelHeight, panelWidth, getMaxHeight, getMaxWidth]);
 
   useEffect(() => {
     fetch(apiUrl(apiBase, '/api/chat-modes'))
@@ -202,29 +203,10 @@ export default function App({ embedded = false, apiBase = '' }) {
         )}
         {(open || embedded) && (
           <div className="chatbot-panel" style={{ height: panelHeight, width: panelWidth }}>
-            {!embedded && (
-              <div
-                className="chatbot-panel-width-resize-handle"
-                onMouseDown={handleWidthResizeStart}
-                role="slider"
-                aria-label="Resize chat panel width"
-                aria-valuemin={PANEL_WIDTH_MIN}
-                aria-valuemax={PANEL_WIDTH_MAX}
-                aria-valuenow={panelWidth}
-              />
-            )}
+            <button type="button" className="chatbot-panel-corner-resize" onMouseDown={handleResizeStart} aria-label="Resize chat panel" title="Drag to resize">
+              <ResizeCornerIcon />
+            </button>
             <div className="chatbot-panel-body">
-              {!embedded && (
-                <div
-                  className="chatbot-panel-resize-handle"
-                  onMouseDown={handleResizeStart}
-                  role="slider"
-                  aria-label="Resize chat panel height"
-                  aria-valuemin={PANEL_HEIGHT_MIN}
-                  aria-valuemax={PANEL_HEIGHT_MAX}
-                  aria-valuenow={panelHeight}
-                />
-              )}
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-brand">
                   <img src={mksLogo} alt="MKS" className="chatbot-panel-logo" />
@@ -262,29 +244,10 @@ export default function App({ embedded = false, apiBase = '' }) {
             className="chatbot-panel"
             style={embedded ? { height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%' } : { height: panelHeight, width: panelWidth }}
           >
-          {!embedded && (
-            <div
-              className="chatbot-panel-width-resize-handle"
-              onMouseDown={handleWidthResizeStart}
-              role="slider"
-              aria-label="Resize chat panel width"
-              aria-valuemin={PANEL_WIDTH_MIN}
-              aria-valuemax={PANEL_WIDTH_MAX}
-              aria-valuenow={panelWidth}
-            />
-          )}
+          <button type="button" className="chatbot-panel-corner-resize" onMouseDown={handleResizeStart} aria-label="Resize chat panel" title="Drag to resize">
+            <ResizeCornerIcon />
+          </button>
           <div className="chatbot-panel-body">
-            {!embedded && (
-              <div
-                className="chatbot-panel-resize-handle"
-                onMouseDown={handleResizeStart}
-                role="slider"
-                aria-label="Resize chat panel height"
-                aria-valuemin={PANEL_HEIGHT_MIN}
-                aria-valuemax={PANEL_HEIGHT_MAX}
-                aria-valuenow={panelHeight}
-              />
-            )}
             <header className="chatbot-panel-header">
             <div className="chatbot-panel-title-row">
               <div className="chatbot-panel-brand">
