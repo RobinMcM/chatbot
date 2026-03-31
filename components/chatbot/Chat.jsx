@@ -6,6 +6,19 @@ import remarkGfm from 'remark-gfm';
 import { formatChatContent } from './utils/formatChatContent.js';
 import { apiUrl } from './utils/api.js';
 
+const INSUFFICIENT_CREDITS_CHAT_MESSAGE = 'Insufficient Credits';
+
+function isInsufficientCreditsError(value) {
+  const text = typeof value === 'string' ? value.toLowerCase() : '';
+  if (!text) return false;
+  return (
+    text.includes('insufficient credits') ||
+    text.includes('requires more credits') ||
+    text.includes('not enough credits') ||
+    (text.includes('402') && text.includes('credit'))
+  );
+}
+
 export default function Chat({
   apiBase,
   chatMode,
@@ -45,17 +58,22 @@ export default function Chat({
         body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
-      console.log('[chatbot] /api/chat response:', data);
+      if (typeof data.error === 'string' && data.error.trim() !== '') {
+        throw new Error(data.error.trim());
+      }
       if (!res.ok) throw new Error(data.error || res.statusText || 'Request failed');
       const assistantMessage = { role: 'assistant', content: data.content || '' };
-      if (!assistantMessage.content) {
-        console.warn('[chatbot] Empty assistant content returned from /api/chat', data);
-      }
       if (data.usage != null && typeof data.usage === 'object') assistantMessage.usage = data.usage;
       if (typeof data.model === 'string' && data.model.trim() !== '') assistantMessage.model = data.model.trim();
       onHistoryChange([...newHistory, assistantMessage]);
     } catch (err) {
-      setError(err.message || 'Failed to send');
+      const message = err?.message || 'Failed to send';
+      if (isInsufficientCreditsError(message)) {
+        onHistoryChange([...newHistory, { role: 'assistant', content: INSUFFICIENT_CREDITS_CHAT_MESSAGE }]);
+        setError(null);
+      } else {
+        setError(message);
+      }
     } finally {
       setSending(false);
     }

@@ -5,6 +5,19 @@ import { corsPreflight, jsonWithCors } from '../../../lib/server/cors.js';
 import { safeJson } from '../../../lib/server/http.js';
 import { CHAT_MODEL, CHAT_MODEL_ALLOWLIST } from '../../../lib/server/env.js';
 
+const INSUFFICIENT_CREDITS_FALLBACK_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+
+function isInsufficientCreditsError(message) {
+  const text = typeof message === 'string' ? message.toLowerCase() : '';
+  if (!text) return false;
+  return (
+    text.includes('requires more credits') ||
+    text.includes('not enough credits') ||
+    text.includes('insufficient credits') ||
+    (text.includes('402') && text.includes('credit'))
+  );
+}
+
 export function OPTIONS(request) {
   return corsPreflight(request);
 }
@@ -49,11 +62,30 @@ export async function POST(request) {
   const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
 
   try {
-    const { content, usage, model: gatewayModel } = await executeGatewayChat({
-      messages,
-      requestId,
-      model: selectedModel,
-    });
+    let gatewayResponse;
+    let usedInsufficientCreditsFallback = false;
+    try {
+      gatewayResponse = await executeGatewayChat({
+        messages,
+        requestId,
+        model: selectedModel,
+      });
+    } catch (primaryErr) {
+      const primaryMessage = primaryErr?.message || '';
+      const requestedOrDefaultModel = selectedModel
+        || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : '');
+      const canFallback = requestedOrDefaultModel.toLowerCase() !== INSUFFICIENT_CREDITS_FALLBACK_MODEL.toLowerCase();
+      if (!isInsufficientCreditsError(primaryMessage) || !canFallback) {
+        throw primaryErr;
+      }
+      gatewayResponse = await executeGatewayChat({
+        messages,
+        requestId,
+        model: INSUFFICIENT_CREDITS_FALLBACK_MODEL,
+      });
+      usedInsufficientCreditsFallback = true;
+    }
+    const { content, usage, model: gatewayModel } = gatewayResponse;
 
     const modelToUse = typeof gatewayModel === 'string' && gatewayModel.trim()
       ? gatewayModel.trim().slice(0, 128)
@@ -61,6 +93,7 @@ export async function POST(request) {
     const modelForPayload = modelToUse || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
     const payload = { content, model: modelForPayload, chat_mode: rulesResolution.ruleId };
     if (usage !== undefined) payload.usage = usage;
+    if (usedInsufficientCreditsFallback) payload.model_fallback_used = true;
 
     return jsonWithCors(request, payload);
   } catch (err) {
