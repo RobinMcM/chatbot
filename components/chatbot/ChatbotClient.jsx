@@ -2,17 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chat from './Chat.jsx';
-import ViewChatsPanel from './ViewChatsPanel.jsx';
-import { getEmailFromCookie, setEmailCookie } from './utils/cookies.js';
 import { apiUrl } from './utils/api.js';
 
 const PANEL_HEIGHT_DEFAULT = 520;
 const PANEL_HEIGHT_MIN = 320;
 const PANEL_HEIGHT_MAX = 800;
-const PANEL_WIDTH_DEFAULT = 380;
-const PANEL_WIDTH_MIN = 320;
-const PANEL_WIDTH_MAX = 640;
-const SESSION_STORAGE_KEY = 'chatbot_session_id';
 
 async function readJsonResponse(res) {
   const text = await res.text();
@@ -22,16 +16,6 @@ async function readJsonResponse(res) {
   } catch {
     throw new Error('Invalid response from server');
   }
-}
-
-function getOrCreateSessionId() {
-  if (typeof window === 'undefined') return null;
-  let id = window.localStorage.getItem(SESSION_STORAGE_KEY);
-  if (!id) {
-    id = crypto.randomUUID?.() ?? `s-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-    window.localStorage.setItem(SESSION_STORAGE_KEY, id);
-  }
-  return id;
 }
 
 function ChatIcon() {
@@ -50,6 +34,27 @@ function ChevronDownIcon() {
   );
 }
 
+function ExpandIcon({ expanded = false }) {
+  if (expanded) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polyline points="15 3 21 3 21 9" />
+        <polyline points="9 21 3 21 3 15" />
+        <line x1="21" y1="3" x2="14" y2="10" />
+        <line x1="3" y1="21" x2="10" y2="14" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="9 3 3 3 3 9" />
+      <polyline points="15 21 21 21 21 15" />
+      <line x1="3" y1="3" x2="10" y2="10" />
+      <line x1="21" y1="21" x2="14" y2="14" />
+    </svg>
+  );
+}
+
 function InfoIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -59,29 +64,17 @@ function InfoIcon() {
   );
 }
 
-export default function ChatbotClient({ embedded = false, apiBase = '', modeId = null }) {
+export default function ChatbotClient({ embedded = false, apiBase = '', modeId = null, model = '', backgroundColor = '' }) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
-  const [conversationId, setConversationId] = useState(() => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`));
-  const [linkedEmail, setLinkedEmail] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return getEmailFromCookie() ?? window.localStorage.getItem('chatbot_email') ?? '';
-  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(embedded);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
-  const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
-  const [viewChatsPanelOpen, setViewChatsPanelOpen] = useState(false);
-  const [viewChatsRefreshTrigger, setViewChatsRefreshTrigger] = useState(0);
-  const [emailInput, setEmailInput] = useState('');
   const resizeRef = useRef({ startY: 0, startHeight: 0 });
-  const widthResizeRef = useRef({ startX: 0, startWidth: 0 });
-  const sessionIdRef = useRef(null);
-  if (!sessionIdRef.current && typeof window !== 'undefined') sessionIdRef.current = getOrCreateSessionId();
-  const sessionId = sessionIdRef.current;
 
   const getMaxHeight = useCallback(
     () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - 80 : PANEL_HEIGHT_MAX),
@@ -111,28 +104,6 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
     document.addEventListener('mouseup', onUp);
   }, [panelHeight, getMaxHeight]);
 
-  const handleWidthResizeStart = useCallback((e) => {
-    e.preventDefault();
-    widthResizeRef.current = { startX: e.clientX, startWidth: panelWidth };
-    const onMove = (moveEvent) => {
-      const dx = widthResizeRef.current.startX - moveEvent.clientX;
-      setPanelWidth(() => {
-        const next = widthResizeRef.current.startWidth + dx;
-        return Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, next));
-      });
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [panelWidth]);
-
   useEffect(() => {
     fetch(apiUrl(apiBase, '/api/chat-modes'))
       .then(async (res) => {
@@ -151,7 +122,8 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
           if (canonical) {
             setChatMode(canonical);
           } else {
-            const destination = embedded ? `/chatbot/embed/${ids[0]}` : `/chatbot/${ids[0]}`;
+            const query = typeof window !== 'undefined' ? window.location.search : '';
+            const destination = `${embedded ? `/chatbot/embed/${ids[0]}` : `/chatbot/${ids[0]}`}${query}`;
             window.history.replaceState(null, '', destination);
             setChatMode(ids[0]);
           }
@@ -162,11 +134,6 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
       .catch((err) => setError(err.message || 'Failed to load chat modes'))
       .finally(() => setLoading(false));
   }, [modeId, embedded, apiBase]);
-
-  const handleLoadConversation = useCallback((messages, nextConversationId) => {
-    setConversationHistory(Array.isArray(messages) ? messages : []);
-    if (nextConversationId) setConversationId(nextConversationId);
-  }, []);
 
   if (loading) {
     return (
@@ -188,18 +155,33 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
           <ChatIcon />
         </button>
       ) : (
-        <div className={viewChatsPanelOpen ? 'chatbot-panel-row' : ''} style={viewChatsPanelOpen ? { height: embedded ? '100%' : panelHeight } : undefined}>
-          <div className="chatbot-panel" style={embedded ? { height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%' } : { height: panelHeight, width: panelWidth }}>
-            {!embedded && (
-              <div className="chatbot-panel-width-resize-handle" onMouseDown={handleWidthResizeStart} role="slider" aria-label="Resize chat panel width" aria-valuemin={PANEL_WIDTH_MIN} aria-valuemax={PANEL_WIDTH_MAX} aria-valuenow={panelWidth} />
-            )}
+        <div>
+          <div
+            className="chatbot-panel"
+            style={
+              embedded
+                ? { height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%' }
+                : expanded
+                  ? { height: 'calc(100vh - 2rem)', width: 'calc(100vw - 2rem)', maxHeight: '900px', maxWidth: '960px' }
+                  : { height: panelHeight, width: 380 }
+            }
+          >
             <div className="chatbot-panel-body">
-              {!embedded && (
+              {!embedded && !expanded && (
                 <div className="chatbot-panel-resize-handle" onMouseDown={handleResizeStart} role="slider" aria-label="Resize chat panel height" aria-valuemin={PANEL_HEIGHT_MIN} aria-valuemax={PANEL_HEIGHT_MAX} aria-valuenow={panelHeight} />
               )}
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-title-row">
                   <div className="chatbot-panel-brand">
+                    <button
+                      type="button"
+                      className="chatbot-panel-expand"
+                      onClick={() => setExpanded((prev) => !prev)}
+                      aria-label={expanded ? 'Collapse chat panel' : 'Expand chat panel'}
+                      title={expanded ? 'Collapse' : 'Expand'}
+                    >
+                      <ExpandIcon expanded={expanded} />
+                    </button>
                     <span className="chatbot-panel-title"><strong>Rapid</strong> MVP Assistant</span>
                   </div>
                   {!embedded && (
@@ -218,12 +200,6 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
                           return typeof mode === 'object' && mode != null && 'displayName' in mode ? mode.displayName : chatMode;
                         })()}
                       </span>
-                    )}
-                    {chatMode && (
-                      <>
-                        <span className="chatbot-panel-view-chats-sep" aria-hidden="true"> · </span>
-                        <button type="button" className="chatbot-panel-view-chats-link" onClick={() => setViewChatsPanelOpen((o) => !o)} aria-expanded={viewChatsPanelOpen} aria-label="View chats">View chats</button>
-                      </>
                     )}
                     <div className="chatbot-panel-info-wrap">
                       <button type="button" className="chatbot-panel-info-btn" onClick={() => setInfoOpen((o) => !o)} aria-label="Prompt information" aria-expanded={infoOpen}>
@@ -247,56 +223,21 @@ export default function ChatbotClient({ embedded = false, apiBase = '', modeId =
                 </div>
               </header>
               {error && <div className="chatbot-panel-error">Error: {error}</div>}
-              <div className="chatbot-panel-email-section">
-                {linkedEmail ? (
-                  <p className="chat-email-linked">Saved with {linkedEmail}</p>
-                ) : (
-                  <div className="chat-email-form">
-                    <input type="email" className="chat-email-input" placeholder="Please enter your email or mobile" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} aria-label="Email" />
-                  </div>
-                )}
-              </div>
               <Chat
                 apiBase={apiBase}
                 chatMode={chatMode}
                 conversationHistory={conversationHistory}
                 onHistoryChange={setConversationHistory}
-                onClearHistory={() => {
-                  setConversationHistory([]);
-                  setConversationId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}`);
-                }}
+                onClearHistory={() => setConversationHistory([])}
                 promptInfo={(() => {
                   const mode = chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode);
                   return typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : '';
                 })()}
-                sessionId={sessionId}
-                conversationId={conversationId}
-                onConversationId={setConversationId}
-                linkedEmail={linkedEmail}
-                emailInput={emailInput}
-                setEmailInput={setEmailInput}
-                onLinkedEmail={(email) => {
-                  const value = email || '';
-                  setLinkedEmail(value);
-                  setEmailCookie(value);
-                  try { window.localStorage.setItem('chatbot_email', value); } catch {}
-                }}
-                onMessageSent={() => setViewChatsRefreshTrigger((t) => t + 1)}
+                model={model}
+                backgroundColor={backgroundColor}
               />
             </div>
           </div>
-          {viewChatsPanelOpen && (
-            <ViewChatsPanel
-              apiBase={apiBase}
-              chatMode={chatMode}
-              sessionId={sessionId}
-              linkedEmail={linkedEmail}
-              conversationId={conversationId}
-              onClose={() => setViewChatsPanelOpen(false)}
-              onLoadConversation={handleLoadConversation}
-              refreshTrigger={viewChatsRefreshTrigger}
-            />
-          )}
         </div>
       )}
     </div>

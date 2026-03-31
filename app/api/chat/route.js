@@ -1,12 +1,9 @@
-import crypto from 'node:crypto';
 import { buildMessages } from '../../../lib/server/prompt.js';
 import { loadRules } from '../../../lib/server/rules.js';
 import { executeGatewayChat } from '../../../lib/server/gateway-client.js';
-import * as db from '../../../lib/server/persistence/index.js';
 import { corsPreflight, jsonWithCors } from '../../../lib/server/cors.js';
 import { safeJson } from '../../../lib/server/http.js';
-import { CHAT_MODEL } from '../../../lib/server/env.js';
-import { deriveClientId } from '../../../lib/server/session.js';
+import { CHAT_MODEL, CHAT_MODEL_ALLOWLIST } from '../../../lib/server/env.js';
 
 export function OPTIONS(request) {
   return corsPreflight(request);
@@ -19,13 +16,20 @@ export async function POST(request) {
     conversation_history,
     user_message,
     optional_context,
-    conversation_id: bodyConversationId,
-    email: bodyEmail,
+    model: bodyModel,
   } = body ?? {};
-
-  const email = typeof bodyEmail === 'string' && bodyEmail.trim() !== '' && bodyEmail.length <= 320
-    ? bodyEmail.trim()
+  const modelOverride = typeof bodyModel === 'string' && bodyModel.trim() !== ''
+    ? bodyModel.trim().slice(0, 128)
     : null;
+  const normalizedAllowlist = Array.isArray(CHAT_MODEL_ALLOWLIST)
+    ? CHAT_MODEL_ALLOWLIST.map((item) => item.toLowerCase())
+    : [];
+  if (modelOverride && normalizedAllowlist.length > 0 && !normalizedAllowlist.includes(modelOverride.toLowerCase())) {
+    return jsonWithCors(request, { error: 'Requested model is not allowed' }, { status: 400 });
+  }
+  const selectedModel = modelOverride && normalizedAllowlist.length > 0
+    ? (normalizedAllowlist.includes(modelOverride.toLowerCase()) ? modelOverride : null)
+    : modelOverride;
 
   if (!chat_mode || typeof chat_mode !== 'string') {
     return jsonWithCors(request, { error: 'chat_mode is required' }, { status: 400 });
@@ -50,44 +54,15 @@ export async function POST(request) {
     const { content, usage, model: gatewayModel } = await executeGatewayChat({
       messages,
       requestId,
+      model: selectedModel,
     });
 
     const modelToUse = typeof gatewayModel === 'string' && gatewayModel.trim()
       ? gatewayModel.trim().slice(0, 128)
       : (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
     const modelForPayload = modelToUse || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
-    const modelForDb = modelForPayload || 'unknown';
     const payload = { content, model: modelForPayload };
     if (usage !== undefined) payload.usage = usage;
-
-    if (db.isConfigured()) {
-      try {
-        await db.ensureTables();
-        const clientId = await deriveClientId(request);
-        const conversationId = typeof bodyConversationId === 'string' && bodyConversationId.trim() !== ''
-          ? bodyConversationId.trim().slice(0, 64)
-          : crypto.randomUUID();
-        let emailForMessages = await db.getSessionEmail(clientId);
-        if (email) {
-          await db.upsertSession(clientId, email);
-          await db.backfillEmailForClient(clientId, email);
-          emailForMessages = email;
-        }
-        await db.insertMessages(
-          clientId,
-          conversationId,
-          chat_mode,
-          [
-            { role: 'user', content: user_message },
-            { role: 'assistant', content: payload.content || '', model: modelForDb, usage: payload.usage },
-          ],
-          emailForMessages
-        );
-        payload.conversation_id = conversationId;
-      } catch (dbErr) {
-        console.error('[chat] Persist error:', dbErr.message);
-      }
-    }
 
     return jsonWithCors(request, payload);
   } catch (err) {

@@ -17,14 +17,8 @@ export default function Chat({
   onHistoryChange,
   onClearHistory,
   promptInfo,
-  sessionId,
-  conversationId,
-  onConversationId,
-  linkedEmail,
-  emailInput,
-  setEmailInput,
-  onLinkedEmail,
-  onMessageSent,
+  model,
+  backgroundColor,
 }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -65,33 +59,23 @@ export default function Chat({
     setSending(true);
 
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (sessionId) headers['X-Session-Id'] = sessionId;
       const body = {
         chat_mode: chatMode,
         conversation_history: conversationHistory,
         user_message: userMessage,
       };
-      if (sessionId) body.session_id = sessionId;
-      if (conversationId) body.conversation_id = conversationId;
-      const emailToSend = typeof emailInput === 'string' ? emailInput.trim() : '';
-      if (emailToSend && !linkedEmail && onLinkedEmail) body.email = emailToSend;
-      const res = await fetch(apiUrl(apiBase, '/api/chat'), { method: 'POST', headers, body: JSON.stringify(body) });
+      if (typeof model === 'string' && model.trim() !== '') body.model = model.trim();
+      const res = await fetch(apiUrl(apiBase, '/api/chat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || res.statusText || 'Request failed');
-
-      if (emailToSend && !linkedEmail && onLinkedEmail) {
-        onLinkedEmail(emailToSend);
-        setEmailInput('');
-      }
-      if (typeof data.conversation_id === 'string' && data.conversation_id.trim() && typeof onConversationId === 'function') {
-        onConversationId(data.conversation_id.trim());
-      }
       const assistantMessage = { role: 'assistant', content: data.content || '' };
       if (data.usage != null && typeof data.usage === 'object') assistantMessage.usage = data.usage;
       if (typeof data.model === 'string' && data.model.trim() !== '') assistantMessage.model = data.model.trim();
       onHistoryChange([...newHistory, assistantMessage]);
-      if (typeof onMessageSent === 'function') onMessageSent();
     } catch (err) {
       setError(err.message || 'Failed to send');
     } finally {
@@ -100,7 +84,7 @@ export default function Chat({
   };
 
   return (
-    <div className="chat">
+    <div className="chat" style={backgroundColor ? { '--chat-messages-bg': backgroundColor } : undefined}>
       <div className="chat-messages">
         {conversationHistory.length === 0 && (
           <div className="chat-placeholder">

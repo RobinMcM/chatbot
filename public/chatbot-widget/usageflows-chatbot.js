@@ -25,14 +25,19 @@
       var modeId = (this.getAttribute('mode-id') || 'insolvency').trim();
       var apiBase = normalizeBase(this.getAttribute('api-base') || '');
       var embedded = this.getAttribute('embedded') !== 'false';
+      var embedSrc = (this.getAttribute('embed-src') || '').trim();
+      var model = (this.getAttribute('model') || '').trim();
+      var bgColor = (this.getAttribute('bg-color') || '').trim();
       var tenantId = (this.getAttribute('tenant-id') || '').trim();
       var appId = (this.getAttribute('app-id') || '').trim();
 
       var params = new URLSearchParams();
       if (tenantId) params.set('tenant_id', tenantId);
       if (appId) params.set('app_id', appId);
+      if (model) params.set('model', model);
+      if (bgColor) params.set('bg', bgColor);
       var qs = params.toString() ? ('?' + params.toString()) : '';
-      var src = apiBase + '/chatbot/embed/' + encodeURIComponent(modeId) + qs;
+      var src = embedSrc || (apiBase + '/chatbot/embed/' + encodeURIComponent(modeId) + qs);
 
       if (embedded) {
         this.style.display = 'block';

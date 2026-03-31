@@ -29,7 +29,6 @@ npm run start
 - `/chatbot/[modeId]`
 - `/chatbot/embed`
 - `/chatbot/embed/[modeId]`
-- `/chatbot/view`
 
 ## API routes
 
@@ -37,12 +36,8 @@ npm run start
 - `GET /api/chat-modes`
 - `GET /api/rules/[chat_mode]`
 - `POST /api/chat`
-- `POST /api/sessions/email`
-- `GET /api/chat-history`
-- `GET /api/chat-history/admin`
-- `GET /api/chat-history/messages`
-- `DELETE /api/chat-history/conversation`
-- `DELETE /api/chat-history/admin/conversation`
+
+The chatbot is stateless in Next.js runtime: no server-side chat history/admin endpoints.
 
 ## Embed options
 
@@ -50,7 +45,7 @@ npm run start
 
 ```html
 <iframe
-  src="https://your-chatbot-host/chatbot/embed/insolvency"
+  src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc"
   title="Advisory assistant"
   width="380"
   height="560"
@@ -68,8 +63,17 @@ npm run start
   mode-id="insolvency"
   api-base="https://your-chatbot-host"
   embedded="true"
-  tenant-id="rapidmvp"
-  app-id="movieshaker"
+  model="openai/gpt-5-pro"
+  bg-color="#f8fafc"
+></usageflows-chatbot>
+```
+
+You can also pass a single full embed URL:
+
+```html
+<usageflows-chatbot
+  embed-src="https://your-chatbot-host/chatbot/embed/insolvency?model=openai/gpt-5-pro&bg=%23f8fafc"
+  embedded="true"
 ></usageflows-chatbot>
 ```
 
@@ -83,13 +87,18 @@ Versioned alias:
 |----------|-------------|---------|
 | `GATEWAY_BASE_URL` | Gateway base URL | `https://models.rapidmvp.io` |
 | `GATEWAY_API_KEY` | Internal key for gateway `X-Internal-API-Key` | required |
-| `CHAT_MODEL` | Model id sent in payload | `openai/gpt-5-pro` |
+| `CHAT_MODEL` | Default model id sent in payload | `openai/gpt-5-pro` |
+| `CHAT_MODEL_ALLOWLIST` | Optional comma-separated allowlist for URL-provided `?model=` values | empty |
 | `GATEWAY_TIMEOUT_MS` | Timeout to gateway in ms | `120000` |
 | `CHATBOT_CORS_ALLOWED_ORIGINS` | CORS allowlist for `/api/*` | `https://rapidmvp.io,https://www.rapidmvp.io,https://taxflow.uk` |
 | `CHATBOT_FRAME_ANCESTORS` | CSP `frame-ancestors` allowlist for `/chatbot/*` | `'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com` |
-| `CONNECTION_TYPE` | `AZURE` or `POSTGRES` | `AZURE` |
 
-See `.env.example` for persistence-related values.
+Model precedence:
+1. URL query `?model=...` (or widget `model` attribute),
+2. `CHAT_MODEL` fallback.
+
+Background override:
+- URL query `?bg=...` (or widget `bg-color` attribute), e.g. `?bg=%23f8fafc`.
 
 ## Testing and evals
 
