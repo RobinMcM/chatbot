@@ -2,7 +2,7 @@
 
 ## DNS / Domains
 
-- `chatbot.openrouter.io` (or equivalent chatbot host) points to Next.js app deployment.
+- `chatbot.rapidmvp.io` (or equivalent chatbot host) points to Next.js app deployment.
 - `models.rapidmvp.io` gateway is reachable and healthy (`GET /health`).
 
 ## Environment

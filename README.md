@@ -93,7 +93,7 @@ Versioned alias:
 | `CHAT_MODEL` | Default model id sent in payload | `openai/gpt-5-mini` |
 | `CHAT_MODEL_ALLOWLIST` | Optional comma-separated allowlist for URL-provided `?model=` values | empty |
 | `GATEWAY_TIMEOUT_MS` | Timeout to gateway in ms | `120000` |
-| `CHATBOT_CORS_ALLOWED_ORIGINS` | CORS allowlist for `/api/*` | `https://rapidmvp.io,https://www.rapidmvp.io,https://chatbot.rapidmvp.io,https://chatbot.openrouter.io` |
+| `CHATBOT_CORS_ALLOWED_ORIGINS` | CORS allowlist for `/api/*` | `https://rapidmvp.io,https://www.rapidmvp.io,https://chatbot.rapidmvp.io` |
 | `CHATBOT_FRAME_ANCESTORS` | CSP `frame-ancestors` allowlist for `/chatbot/*` | `'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com` |
 
 Model precedence:
