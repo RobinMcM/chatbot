@@ -2,7 +2,7 @@
 
 ## DNS / Domains
 
-- `taxflow.uk` (or equivalent chatbot host) points to Next.js app deployment.
+- `chatbot.openrouter.io` (or equivalent chatbot host) points to Next.js app deployment.
 - `models.rapidmvp.io` gateway is reachable and healthy (`GET /health`).
 
 ## Environment

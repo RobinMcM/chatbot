@@ -7,6 +7,7 @@ import { formatChatContent } from './utils/formatChatContent.js';
 import { apiUrl } from './utils/api.js';
 
 const INSUFFICIENT_CREDITS_CHAT_MESSAGE = 'Insufficient Credits';
+const HIDDEN_RULES_REQUEST_TIMEOUT_MS = 1200;
 
 function isInsufficientCreditsError(value) {
   const text = typeof value === 'string' ? value.toLowerCase() : '';
@@ -30,10 +31,45 @@ export default function Chat({
   contactUrl = '',
   contactTargetOrigin = '',
   allowedParentOrigins = [],
+  rulesSource = 'folder',
 }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState(-1);
+
+  const requestHiddenRulesText = useCallback(async () => {
+    if (typeof window === 'undefined' || !window.parent || window.parent === window) return '';
+    const requestId = `hidden-rules-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const settle = (value) => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage);
+        window.clearTimeout(timer);
+        resolve(typeof value === 'string' ? value : '');
+      };
+
+      const onMessage = (event) => {
+        if (event.source !== window.parent) return;
+        const data = event.data ?? {};
+        if (!data || data.type !== 'usageflows:hiddenRulesPayload') return;
+        if (data.requestId !== requestId) return;
+        settle(typeof data.rulesText === 'string' ? data.rulesText.slice(0, 20000) : '');
+      };
+
+      const timer = window.setTimeout(() => settle(''), HIDDEN_RULES_REQUEST_TIMEOUT_MS);
+      window.addEventListener('message', onMessage);
+      window.parent.postMessage({
+        type: 'usageflows:requestHiddenRules',
+        source: 'usageflows-chatbot',
+        requestId,
+        timestamp: Date.now(),
+      }, '*');
+    });
+  }, []);
 
   const handleSend = async () => {
     const userMessage = input.trim();
@@ -51,6 +87,13 @@ export default function Chat({
         conversation_history: conversationHistory,
         user_message: userMessage,
       };
+      body.rules_source = rulesSource === 'hidden' ? 'hidden' : 'folder';
+      if (body.rules_source === 'hidden') {
+        const hiddenRulesText = await requestHiddenRulesText();
+        if (hiddenRulesText.trim()) {
+          body.hidden_rules_text = hiddenRulesText;
+        }
+      }
       if (typeof model === 'string' && model.trim() !== '') body.model = model.trim();
       console.log('[chatbot] sending /api/chat', {
         chat_mode: body.chat_mode,
@@ -72,7 +115,18 @@ export default function Chat({
       const assistantMessage = { role: 'assistant', content: data.content || '' };
       if (data.usage != null && typeof data.usage === 'object') assistantMessage.usage = data.usage;
       if (typeof data.model === 'string' && data.model.trim() !== '') assistantMessage.model = data.model.trim();
-      onHistoryChange([...newHistory, assistantMessage]);
+      const updatedHistory = [...newHistory, assistantMessage];
+      onHistoryChange(updatedHistory);
+      if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'usageflows:chatResult',
+          source: 'usageflows-chatbot',
+          version: 1,
+          modeId: chatMode,
+          message: assistantMessage.content,
+          timestamp: Date.now(),
+        }, '*');
+      }
     } catch (err) {
       const message = err?.message || 'Failed to send';
       console.error('[chatbot] send failed', { message, chatMode, model: model || null });
@@ -134,6 +188,30 @@ export default function Chat({
     window.parent.postMessage(payload, targetOrigin);
   }, [allowedParentOrigins, chatMode, contactTargetOrigin, contactUrl, conversationHistory, model]);
 
+  const handleCopyMessage = useCallback(async (message, index) => {
+    const text = typeof message === 'string' ? message.trim() : '';
+    if (!text) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedMessageIndex(index);
+      window.setTimeout(() => setCopiedMessageIndex((current) => (current === index ? -1 : current)), 1200);
+    } catch {
+      setError('Unable to copy message.');
+    }
+  }, []);
+
   return (
     <div className="chat">
       <div className="chat-messages">
@@ -151,6 +229,17 @@ export default function Chat({
               </span>
               {isAssistant ? (
                 <div className="chat-message-body chat-message-body--assistant">
+                  <div className="chat-message-tools">
+                    <button
+                      type="button"
+                      className="chat-message-copy-btn"
+                      onClick={() => handleCopyMessage(msg.content, i)}
+                      aria-label="Copy this result"
+                      title={copiedMessageIndex === i ? 'Copied' : 'Copy'}
+                    >
+                      {copiedMessageIndex === i ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
                   <div className="chat-message-content chat-message-content--markdown">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{formatChatContent(msg.content)}</ReactMarkdown>
                   </div>

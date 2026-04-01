@@ -63,6 +63,12 @@ function parseAllowedParentOrigins(searchParams) {
     .filter(Boolean);
 }
 
+function parseRulesSource(searchParams) {
+  if (!searchParams) return 'folder';
+  const value = typeof searchParams.rules_source === 'string' ? searchParams.rules_source.trim().toLowerCase() : '';
+  return value === 'hidden' ? 'hidden' : 'folder';
+}
+
 async function resolveSearchParams(searchParams) {
   const resolvedSearchParams = await Promise.resolve(searchParams);
   return resolvedSearchParams && typeof resolvedSearchParams === 'object' ? resolvedSearchParams : {};
@@ -79,6 +85,7 @@ export default async function ChatbotHomePage({ searchParams }) {
       contactUrl={parseContactUrl(resolvedSearchParams)}
       contactTargetOrigin={parseContactTargetOrigin(resolvedSearchParams)}
       allowedParentOrigins={parseAllowedParentOrigins(resolvedSearchParams)}
+      rulesSource={parseRulesSource(resolvedSearchParams)}
     />
   );
 }

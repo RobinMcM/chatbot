@@ -67,6 +67,7 @@ export default function ChatbotClient({
   contactUrl = '',
   contactTargetOrigin = '',
   allowedParentOrigins = [],
+  rulesSource = 'folder',
 }) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
@@ -244,6 +245,7 @@ export default function ChatbotClient({
                 contactUrl={contactUrl}
                 contactTargetOrigin={contactTargetOrigin}
                 allowedParentOrigins={allowedParentOrigins}
+                rulesSource={rulesSource === 'hidden' ? 'hidden' : 'folder'}
               />
             </div>
           </div>

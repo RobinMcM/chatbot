@@ -5,6 +5,9 @@ import { corsPreflight, jsonWithCors } from '../../../lib/server/cors.js';
 import { safeJson } from '../../../lib/server/http.js';
 import { CHAT_MODEL, CHAT_MODEL_ALLOWLIST } from '../../../lib/server/env.js';
 
+const ALLOWED_RULES_SOURCES = new Set(['folder', 'hidden']);
+const HIDDEN_RULES_MAX_CHARS = 20000;
+
 export function OPTIONS(request) {
   return corsPreflight(request);
 }
@@ -17,7 +20,17 @@ export async function POST(request) {
     user_message,
     optional_context,
     model: bodyModel,
+    rules_source: bodyRulesSource,
+    hidden_rules_text: bodyHiddenRulesText,
   } = body ?? {};
+  const rulesSource = typeof bodyRulesSource === 'string' ? bodyRulesSource.trim().toLowerCase() : 'folder';
+  if (!ALLOWED_RULES_SOURCES.has(rulesSource)) {
+    return jsonWithCors(request, { error: 'rules_source must be one of: folder, hidden' }, { status: 400 });
+  }
+  const hiddenRulesText = typeof bodyHiddenRulesText === 'string' ? bodyHiddenRulesText.trim() : '';
+  if (hiddenRulesText.length > HIDDEN_RULES_MAX_CHARS) {
+    return jsonWithCors(request, { error: `hidden_rules_text exceeds ${HIDDEN_RULES_MAX_CHARS} characters` }, { status: 400 });
+  }
   const modelOverride = typeof bodyModel === 'string' && bodyModel.trim() !== ''
     ? bodyModel.trim().slice(0, 128)
     : null;
@@ -35,6 +48,8 @@ export async function POST(request) {
   console.log('[chatbot-api] request received', {
     requestId,
     requestedMode: typeof chat_mode === 'string' ? chat_mode : null,
+    rulesSource,
+    hiddenRulesLength: hiddenRulesText.length,
     selectedModel: selectedModel || null,
     allowlistCount: normalizedAllowlist.length,
     conversationCount: Array.isArray(conversation_history) ? conversation_history.length : null,
@@ -49,12 +64,15 @@ export async function POST(request) {
     return jsonWithCors(request, { error: 'user_message is required' }, { status: 400 });
   }
 
-  const rulesResolution = loadRulesWithFallback(requestedMode);
-  if (!rulesResolution) {
+  const fallbackRulesResolution = loadRulesWithFallback(requestedMode);
+  if (!fallbackRulesResolution) {
     return jsonWithCors(request, { error: 'No rules template available (including fallback)' }, { status: 500 });
   }
-
-  const rulesText = rulesResolution.loaded.meta?.rulesOnly ?? rulesResolution.loaded.content;
+  const useHiddenRules = rulesSource === 'hidden' && hiddenRulesText !== '';
+  const rulesText = useHiddenRules
+    ? hiddenRulesText
+    : (fallbackRulesResolution.loaded.meta?.rulesOnly ?? fallbackRulesResolution.loaded.content);
+  const resolvedRuleId = useHiddenRules ? 'hidden' : fallbackRulesResolution.ruleId;
   const messages = buildMessages(rulesText, conversation_history, user_message, optional_context);
   try {
     const { content, usage, model: gatewayModel } = await executeGatewayChat({
@@ -67,11 +85,11 @@ export async function POST(request) {
       ? gatewayModel.trim().slice(0, 128)
       : (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
     const modelForPayload = modelToUse || (typeof CHAT_MODEL === 'string' && CHAT_MODEL.trim() ? CHAT_MODEL.trim() : null);
-    const payload = { content, model: modelForPayload, chat_mode: rulesResolution.ruleId };
+    const payload = { content, model: modelForPayload, chat_mode: resolvedRuleId };
     if (usage !== undefined) payload.usage = usage;
     console.log('[chatbot-api] response success', {
       requestId,
-      resolvedRule: rulesResolution.ruleId,
+      resolvedRule: resolvedRuleId,
       model: payload.model || null,
       contentLength: typeof payload.content === 'string' ? payload.content.length : 0,
     });
@@ -83,7 +101,7 @@ export async function POST(request) {
       requestId,
       status,
       message: err.message || 'Gateway request failed',
-      resolvedRule: rulesResolution.ruleId,
+      resolvedRule: resolvedRuleId,
       selectedModel: selectedModel || null,
     });
     return jsonWithCors(request, { error: err.message || 'Gateway request failed' }, { status });

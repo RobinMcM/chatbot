@@ -27,6 +27,7 @@ export default function Chat({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState(-1);
   const [inputSectionHeight, setInputSectionHeight] = useState(INPUT_SECTION_HEIGHT_DEFAULT);
   const resizeRef = useRef({ startY: 0, startHeight: 0 });
 
@@ -108,6 +109,30 @@ export default function Chat({
     }
   };
 
+  const handleCopyMessage = useCallback(async (message, index) => {
+    const text = typeof message === 'string' ? message.trim() : '';
+    if (!text) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedMessageIndex(index);
+      window.setTimeout(() => setCopiedMessageIndex((current) => (current === index ? -1 : current)), 1200);
+    } catch {
+      setError('Unable to copy message.');
+    }
+  }, []);
+
   return (
     <div className="chat">
       <div className="chat-messages">
@@ -125,6 +150,17 @@ export default function Chat({
               </span>
               {isAssistant ? (
                 <div className="chat-message-body chat-message-body--assistant">
+                  <div className="chat-message-tools">
+                    <button
+                      type="button"
+                      className="chat-message-copy-btn"
+                      onClick={() => handleCopyMessage(msg.content, i)}
+                      aria-label="Copy this result"
+                      title={copiedMessageIndex === i ? 'Copied' : 'Copy'}
+                    >
+                      {copiedMessageIndex === i ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
                   <div className="chat-message-content chat-message-content--markdown">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{formatChatContent(msg.content)}</ReactMarkdown>
                   </div>

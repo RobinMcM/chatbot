@@ -105,6 +105,10 @@
       var storageKey = (this.getAttribute('contact-storage-key') || 'usageflows_contact_payload').trim();
       var tenantId = (this.getAttribute('tenant-id') || '').trim();
       var appId = (this.getAttribute('app-id') || '').trim();
+      var hiddenRulesSelector = (this.getAttribute('hidden-rules-selector') || '').trim();
+      var hiddenRulesFieldId = (this.getAttribute('hidden-rules-field-id') || '').trim();
+      var resultFieldSelector = (this.getAttribute('result-field-selector') || '').trim();
+      var resultFieldId = (this.getAttribute('result-field-id') || '').trim();
 
       var params = new URLSearchParams();
       var resolvedRule = ruleId || modeId || 'default';
@@ -125,13 +129,69 @@
       var self = this;
 
       function mountBridgeForIframe(iframeEl) {
+        function readHiddenRulesText() {
+          var target = null;
+          if (hiddenRulesSelector) {
+            try {
+              target = document.querySelector(hiddenRulesSelector);
+            } catch (_) {
+              target = null;
+            }
+          } else if (hiddenRulesFieldId) {
+            target = document.getElementById(hiddenRulesFieldId);
+          }
+          if (!target) return '';
+          var value = typeof target.value === 'string' ? target.value : (target.textContent || '');
+          return String(value || '').slice(0, 20000);
+        }
+
+        function writeResultText(value) {
+          var target = null;
+          if (resultFieldSelector) {
+            try {
+              target = document.querySelector(resultFieldSelector);
+            } catch (_) {
+              target = null;
+            }
+          } else if (resultFieldId) {
+            target = document.getElementById(resultFieldId);
+          }
+          if (!target) return;
+          var text = typeof value === 'string' ? value : '';
+          if ('value' in target) {
+            target.value = text;
+          } else {
+            target.textContent = text;
+          }
+        }
+
         self._onMessage = function (event) {
           if (!iframeEl || !iframeEl.contentWindow) return;
           if (event.source !== iframeEl.contentWindow) return;
           if (iframeOrigin && event.origin !== iframeOrigin) return;
 
           var data = event.data || {};
-          if (!data || data.type !== 'usageflows:contactPayload' || data.source !== 'usageflows-chatbot') return;
+          if (!data || data.source !== 'usageflows-chatbot') return;
+
+          if (data.type === 'usageflows:requestHiddenRules') {
+            var rulesResponse = {
+              type: 'usageflows:hiddenRulesPayload',
+              source: 'usageflows-chatbot-widget',
+              requestId: typeof data.requestId === 'string' ? data.requestId : '',
+              rulesText: readHiddenRulesText()
+            };
+            try {
+              iframeEl.contentWindow.postMessage(rulesResponse, event.origin || '*');
+            } catch (_) {}
+            return;
+          }
+
+          if (data.type === 'usageflows:chatResult') {
+            writeResultText(typeof data.message === 'string' ? data.message : '');
+            return;
+          }
+
+          if (data.type !== 'usageflows:contactPayload') return;
 
           var payload = {
             type: 'usageflows:contactPayload',

@@ -14,13 +14,13 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 
 const GATEWAY_BASE_URL = process.env.GATEWAY_BASE_URL || 'https://usageflows.info';
 const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY;
-const CHAT_MODEL = process.env.CHAT_MODEL || 'openai/gpt-5-pro';
+const CHAT_MODEL = process.env.CHAT_MODEL || 'openai/gpt-5-mini';
 const GATEWAY_TIMEOUT_MS = Number(process.env.GATEWAY_TIMEOUT_MS) || 120000; // 2 min
 const PORT = Number(process.env.PORT) || 3000;
 const CHATBOT_FRAME_ANCESTORS = process.env.CHATBOT_FRAME_ANCESTORS
   || "'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com";
 const CHATBOT_CORS_ALLOWED_ORIGINS = process.env.CHATBOT_CORS_ALLOWED_ORIGINS
-  || 'https://rapidmvp.io,https://www.rapidmvp.io,https://taxflow.uk';
+  || 'https://rapidmvp.io,https://www.rapidmvp.io,https://chatbot.rapidmvp.io,https://chatbot.openrouter.io';
 
 if (!GATEWAY_API_KEY) {
   console.error('GATEWAY_API_KEY is required. Set it in .env or environment.');

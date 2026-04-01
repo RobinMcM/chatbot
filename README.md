@@ -45,7 +45,7 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
 
 ```html
 <iframe
-  src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-pro&bg=%23f8fafc"
+  src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-mini&bg=%23250411"
   title="Advisory assistant"
   width="380"
   height="560"
@@ -63,7 +63,7 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
   rule="insolvency"
   api-base="https://your-chatbot-host"
   embedded="false"
-  model="openai/gpt-5-pro"
+  model="openai/gpt-5-mini"
   bg-color="#f8fafc"
   contact-url="https://clientsite.com/contact"
   contact-target-origin="https://clientsite.com"
@@ -75,7 +75,7 @@ You can also pass a single full embed URL:
 
 ```html
 <usageflows-chatbot
-  embed-src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-pro&bg=%23f8fafc&contact_url=https%3A%2F%2Fclientsite.com%2Fcontact&contact_target_origin=https%3A%2F%2Fclientsite.com&allowed_parent_origins=https%3A%2F%2Fclientsite.com%2Chttps%3A%2F%2Fwww.clientsite.com"
+  embed-src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-mini&bg=%23250411&contact_url=https%3A%2F%2Fclientsite.com%2Fcontact&contact_target_origin=https%3A%2F%2Fclientsite.com&allowed_parent_origins=https%3A%2F%2Fclientsite.com%2Chttps%3A%2F%2Fwww.clientsite.com"
   embedded="false"
 ></usageflows-chatbot>
 ```
@@ -90,10 +90,10 @@ Versioned alias:
 |----------|-------------|---------|
 | `GATEWAY_BASE_URL` | Gateway base URL | `https://models.rapidmvp.io` |
 | `GATEWAY_API_KEY` | Internal key for gateway `X-Internal-API-Key` | required |
-| `CHAT_MODEL` | Default model id sent in payload | `openai/gpt-5-pro` |
+| `CHAT_MODEL` | Default model id sent in payload | `openai/gpt-5-mini` |
 | `CHAT_MODEL_ALLOWLIST` | Optional comma-separated allowlist for URL-provided `?model=` values | empty |
 | `GATEWAY_TIMEOUT_MS` | Timeout to gateway in ms | `120000` |
-| `CHATBOT_CORS_ALLOWED_ORIGINS` | CORS allowlist for `/api/*` | `https://rapidmvp.io,https://www.rapidmvp.io,https://taxflow.uk` |
+| `CHATBOT_CORS_ALLOWED_ORIGINS` | CORS allowlist for `/api/*` | `https://rapidmvp.io,https://www.rapidmvp.io,https://chatbot.rapidmvp.io,https://chatbot.openrouter.io` |
 | `CHATBOT_FRAME_ANCESTORS` | CSP `frame-ancestors` allowlist for `/chatbot/*` | `'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com` |
 
 Model precedence:

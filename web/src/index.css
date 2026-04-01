@@ -484,6 +484,25 @@ body {
   height: auto;
   max-height: none;
 }
+.chat-message-tools {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.35rem 0.5rem 0 0.5rem;
+}
+.chat-message-copy-btn {
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.chat-message-copy-btn:hover {
+  background: #f8fafc;
+}
 .chat-message-content--markdown {
   white-space: normal;
   overflow-wrap: anywhere;
