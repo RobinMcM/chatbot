@@ -76,7 +76,7 @@
     btn.style.zIndex = '3';
     btn.style.padding = '0';
     btn.style.touchAction = 'none';
-    btn.innerHTML = '<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
+    btn.innerHTML = '<svg width="54" height="54" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="7" cy="7" r="1.3"></circle><circle cx="12" cy="7" r="1.3"></circle><circle cx="17" cy="7" r="1.3"></circle><circle cx="7" cy="12" r="1.3"></circle><circle cx="12" cy="12" r="1.3"></circle><circle cx="17" cy="12" r="1.3"></circle><circle cx="7" cy="17" r="1.3"></circle><circle cx="12" cy="17" r="1.3"></circle><circle cx="17" cy="17" r="1.3"></circle></svg>';
     return btn;
   }
 
