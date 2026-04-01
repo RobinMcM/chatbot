@@ -48,7 +48,7 @@ function InfoIcon() {
 
 function ResizeCornerIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="3 9 3 3 9 3" />
       <line x1="3" y1="3" x2="10" y2="10" />
       <line x1="7" y1="3" x2="10" y2="6" />

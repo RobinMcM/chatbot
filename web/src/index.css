@@ -119,11 +119,11 @@ body {
 
 .chatbot-panel-corner-resize {
   position: absolute;
-  top: -18px;
-  left: -18px;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(255,255,255,0.35);
+  top: -45px;
+  left: -45px;
+  width: 90px;
+  height: 90px;
+  border: 2px solid rgba(255,255,255,0.35);
   border-radius: 999px;
   background: var(--chat-accent-bg, #2563eb);
   color: #fff;

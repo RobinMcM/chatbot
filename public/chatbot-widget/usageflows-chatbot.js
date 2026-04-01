@@ -63,11 +63,11 @@
     btn.title = 'Drag to resize';
     btn.setAttribute('aria-label', 'Resize chat panel');
     btn.style.position = 'absolute';
-    btn.style.top = '-18px';
-    btn.style.left = '-18px';
-    btn.style.width = '36px';
-    btn.style.height = '36px';
-    btn.style.border = '1px solid rgba(255,255,255,0.35)';
+    btn.style.top = '-45px';
+    btn.style.left = '-45px';
+    btn.style.width = '90px';
+    btn.style.height = '90px';
+    btn.style.border = '2px solid rgba(255,255,255,0.35)';
     btn.style.borderRadius = '999px';
     btn.style.background = backgroundColor;
     btn.style.color = '#fff';
@@ -76,7 +76,7 @@
     btn.style.zIndex = '3';
     btn.style.padding = '0';
     btn.style.touchAction = 'none';
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
+    btn.innerHTML = '<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
     return btn;
   }
 
