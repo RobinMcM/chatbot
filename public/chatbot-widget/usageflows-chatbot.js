@@ -63,8 +63,8 @@
     btn.title = 'Drag to resize';
     btn.setAttribute('aria-label', 'Resize chat panel');
     btn.style.position = 'absolute';
-    btn.style.top = '-14px';
-    btn.style.left = '-14px';
+    btn.style.top = '-18px';
+    btn.style.left = '-18px';
     btn.style.width = '36px';
     btn.style.height = '36px';
     btn.style.border = '1px solid rgba(255,255,255,0.35)';
@@ -76,7 +76,7 @@
     btn.style.zIndex = '3';
     btn.style.padding = '0';
     btn.style.touchAction = 'none';
-    btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="11 6 18 6 18 13"></polyline><polyline points="6 11 6 18 13 18"></polyline></svg>';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
     return btn;
   }
 

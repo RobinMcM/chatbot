@@ -48,10 +48,11 @@ function InfoIcon() {
 
 function ResizeCornerIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="6" y1="18" x2="18" y2="6" />
-      <polyline points="11 6 18 6 18 13" />
-      <polyline points="6 11 6 18 13 18" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3 9 3 3 9 3" />
+      <line x1="3" y1="3" x2="10" y2="10" />
+      <line x1="7" y1="3" x2="10" y2="6" />
+      <line x1="3" y1="7" x2="6" y2="10" />
     </svg>
   );
 }
