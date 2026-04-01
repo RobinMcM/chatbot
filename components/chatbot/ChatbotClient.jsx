@@ -48,7 +48,7 @@ function InfoIcon() {
 
 function ResizeCornerIcon() {
   return (
-    <svg width="54" height="54" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ display: 'block', margin: 'auto' }}>
       <circle cx="7" cy="7" r="1.3" />
       <circle cx="12" cy="7" r="1.3" />
       <circle cx="17" cy="7" r="1.3" />

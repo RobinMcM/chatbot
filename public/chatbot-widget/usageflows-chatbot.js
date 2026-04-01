@@ -63,10 +63,10 @@
     btn.title = 'Drag to resize';
     btn.setAttribute('aria-label', 'Resize chat panel');
     btn.style.position = 'absolute';
-    btn.style.top = '-45px';
-    btn.style.left = '-45px';
-    btn.style.width = '90px';
-    btn.style.height = '90px';
+    btn.style.top = '-18px';
+    btn.style.left = '-18px';
+    btn.style.width = '36px';
+    btn.style.height = '36px';
     btn.style.border = '2px solid rgba(255,255,255,0.35)';
     btn.style.borderRadius = '999px';
     btn.style.background = backgroundColor;
@@ -76,7 +76,7 @@
     btn.style.zIndex = '3';
     btn.style.padding = '0';
     btn.style.touchAction = 'none';
-    btn.innerHTML = '<svg width="54" height="54" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="7" cy="7" r="1.3"></circle><circle cx="12" cy="7" r="1.3"></circle><circle cx="17" cy="7" r="1.3"></circle><circle cx="7" cy="12" r="1.3"></circle><circle cx="12" cy="12" r="1.3"></circle><circle cx="17" cy="12" r="1.3"></circle><circle cx="7" cy="17" r="1.3"></circle><circle cx="12" cy="17" r="1.3"></circle><circle cx="17" cy="17" r="1.3"></circle></svg>';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:block;margin:auto;"><circle cx="7" cy="7" r="1.3"></circle><circle cx="12" cy="7" r="1.3"></circle><circle cx="17" cy="7" r="1.3"></circle><circle cx="7" cy="12" r="1.3"></circle><circle cx="12" cy="12" r="1.3"></circle><circle cx="17" cy="12" r="1.3"></circle><circle cx="7" cy="17" r="1.3"></circle><circle cx="12" cy="17" r="1.3"></circle><circle cx="17" cy="17" r="1.3"></circle></svg>';
     return btn;
   }
 
