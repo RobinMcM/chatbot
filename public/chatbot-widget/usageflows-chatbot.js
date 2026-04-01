@@ -21,6 +21,18 @@
     return trimmed.split(',').map(function (entry) { return parseOrigin(entry); }).filter(Boolean);
   }
 
+  function resolveAccentColor(bgAttr, src) {
+    var explicit = (bgAttr || '').trim();
+    if (explicit) return explicit;
+    try {
+      var parsed = new URL(src, window.location.origin);
+      var fromQuery = (parsed.searchParams.get('bg') || '').trim();
+      return fromQuery || '#2563eb';
+    } catch (_) {
+      return '#2563eb';
+    }
+  }
+
   function sanitizeSize(value, min, max) {
     var num = Number(value);
     if (!Number.isFinite(num)) return null;
@@ -44,26 +56,27 @@
     return iframe;
   }
 
-  function createResizeHandle() {
+  function createResizeHandle(accentColor) {
+    var backgroundColor = (accentColor || '').trim() || '#2563eb';
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.title = 'Drag to resize';
     btn.setAttribute('aria-label', 'Resize chat panel');
     btn.style.position = 'absolute';
-    btn.style.top = '-10px';
-    btn.style.left = '-10px';
-    btn.style.width = '28px';
-    btn.style.height = '28px';
-    btn.style.border = '1px solid #cbd5e1';
+    btn.style.top = '-14px';
+    btn.style.left = '-14px';
+    btn.style.width = '36px';
+    btn.style.height = '36px';
+    btn.style.border = '1px solid rgba(255,255,255,0.35)';
     btn.style.borderRadius = '999px';
-    btn.style.background = '#fff';
-    btn.style.color = '#475569';
+    btn.style.background = backgroundColor;
+    btn.style.color = '#fff';
     btn.style.cursor = 'nwse-resize';
     btn.style.boxShadow = '0 4px 14px rgba(15,23,42,0.18)';
     btn.style.zIndex = '3';
     btn.style.padding = '0';
     btn.style.touchAction = 'none';
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 9 3 3 9 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><line x1="7" y1="3" x2="10" y2="6"></line><line x1="3" y1="7" x2="6" y2="10"></line></svg>';
+    btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="11 6 18 6 18 13"></polyline><polyline points="6 11 6 18 13 18"></polyline></svg>';
     return btn;
   }
 
@@ -107,6 +120,7 @@
       var src = embedSrc || (apiBase + '/chatbot/embed' + qs);
       var sizeStorageKey = 'usageflows-widget-size:' + src;
       var iframeOrigin = parseOrigin(src);
+      var accentColor = resolveAccentColor(bgColor, src);
       var allowedParentOrigins = splitOrigins(allowedParentOriginsRaw);
       var self = this;
 
@@ -163,10 +177,13 @@
       wrapper.style.bottom = '20px';
       wrapper.style.right = '20px';
       wrapper.style.zIndex = '2147483000';
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'column';
+      wrapper.style.alignItems = 'flex-end';
 
       var button = document.createElement('button');
       button.type = 'button';
-      button.textContent = 'Chat';
+      button.setAttribute('aria-label', 'Open chatbot');
       button.style.width = '56px';
       button.style.height = '56px';
       button.style.border = 'none';
@@ -175,6 +192,10 @@
       button.style.color = '#fff';
       button.style.cursor = 'pointer';
       button.style.boxShadow = '0 8px 24px rgba(37,99,235,0.35)';
+      button.style.display = 'inline-flex';
+      button.style.alignItems = 'center';
+      button.style.justifyContent = 'center';
+      button.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
 
       var panel = document.createElement('div');
       panel.style.display = 'none';
@@ -184,6 +205,7 @@
       panel.style.position = 'relative';
       panel.style.background = 'transparent';
       panel.style.overflow = 'visible';
+      panel.style.alignSelf = 'flex-end';
       try {
         var savedRaw = sessionStorage.getItem(sizeStorageKey);
         if (savedRaw) {
@@ -201,7 +223,7 @@
       panel.appendChild(iframe);
       mountBridgeForIframe(iframe);
 
-      var resizeBtn = createResizeHandle();
+      var resizeBtn = createResizeHandle(accentColor);
       panel.appendChild(resizeBtn);
 
       var dragState = null;

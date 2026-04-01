@@ -119,14 +119,14 @@ body {
 
 .chatbot-panel-corner-resize {
   position: absolute;
-  top: -10px;
-  left: -10px;
-  width: 28px;
-  height: 28px;
-  border: 1px solid #cbd5e1;
+  top: -14px;
+  left: -14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,0.35);
   border-radius: 999px;
-  background: #fff;
-  color: #475569;
+  background: var(--chat-accent-bg, #2563eb);
+  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -137,8 +137,7 @@ body {
 }
 
 .chatbot-panel-corner-resize:hover {
-  background: #f8fafc;
-  color: #1e293b;
+  filter: brightness(1.06);
 }
 
 .chatbot-panel-width-resize-handle {
