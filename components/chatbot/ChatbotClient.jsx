@@ -68,6 +68,11 @@ export default function ChatbotClient({
   contactTargetOrigin = '',
   allowedParentOrigins = [],
   rulesSource = 'folder',
+  contextLabel = '',
+  promptInfoOverride = '',
+  assistantEnabled = true,
+  assistantDisabledMessage = '',
+  rulesPanel = '',
 }) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
@@ -80,6 +85,10 @@ export default function ChatbotClient({
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
   const panelBodyStyle = backgroundColor ? { '--chat-accent-bg': backgroundColor } : undefined;
+  const normalizedRulesSource = rulesSource === 'hidden' || rulesSource === 'external' ? rulesSource : 'folder';
+  const normalizedContextLabel = typeof contextLabel === 'string' ? contextLabel.trim() : '';
+  const normalizedPromptInfoOverride = typeof promptInfoOverride === 'string' ? promptInfoOverride.trim() : '';
+  const useExternalDisplay = normalizedRulesSource === 'external';
 
   const getMaxHeight = useCallback(
     () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - 80 : PANEL_HEIGHT_MAX),
@@ -159,6 +168,25 @@ export default function ChatbotClient({
     );
   }
 
+  const selectedMode = Array.isArray(chatModes)
+    ? chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode)
+    : null;
+  const fallbackDisplayLabel = typeof selectedMode === 'object' && selectedMode != null && 'displayName' in selectedMode
+    ? selectedMode.displayName
+    : chatMode;
+  const resolvedDisplayLabel = useExternalDisplay && normalizedContextLabel
+    ? normalizedContextLabel
+    : fallbackDisplayLabel;
+  const fallbackPromptInfo = typeof selectedMode === 'object' && selectedMode != null && 'promptInfo' in selectedMode
+    ? selectedMode.promptInfo
+    : '';
+  const resolvedPromptInfo = useExternalDisplay && normalizedPromptInfoOverride
+    ? normalizedPromptInfoOverride
+    : fallbackPromptInfo;
+  const shouldShowRulesPanel = useExternalDisplay
+    ? (rulesPanel === 'visible' || rulesPanel === '')
+    : false;
+
   return (
     <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
       {!open && !embedded ? (
@@ -203,10 +231,7 @@ export default function ChatbotClient({
                     {chatMode && (
                       <span className="chatbot-panel-mode-name" aria-label="Current chat mode">
                         Lets Chat about{' '}
-                        {(() => {
-                          const mode = chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode);
-                          return typeof mode === 'object' && mode != null && 'displayName' in mode ? mode.displayName : chatMode;
-                        })()}
+                        {resolvedDisplayLabel}
                       </span>
                     )}
                     <div className="chatbot-panel-info-wrap">
@@ -217,11 +242,7 @@ export default function ChatbotClient({
                         <div className="chatbot-panel-info-popover" role="dialog" aria-label="Prompt information">
                           <h3 className="chatbot-panel-info-heading">Prompt Information</h3>
                           <p className="chatbot-panel-info-text">
-                            {(() => {
-                              const mode = Array.isArray(chatModes) ? chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode) : null;
-                              const text = typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : null;
-                              return typeof text === 'string' ? text : 'No description.';
-                            })()}
+                            {typeof resolvedPromptInfo === 'string' && resolvedPromptInfo ? resolvedPromptInfo : 'No description.'}
                           </p>
                           <button type="button" className="chatbot-panel-info-close" onClick={() => setInfoOpen(false)} aria-label="Close">×</button>
                         </div>
@@ -237,15 +258,15 @@ export default function ChatbotClient({
                 conversationHistory={conversationHistory}
                 onHistoryChange={setConversationHistory}
                 onClearHistory={() => setConversationHistory([])}
-                promptInfo={(() => {
-                  const mode = chatModes.find((m) => (typeof m === 'object' && m != null ? m.id : m) === chatMode);
-                  return typeof mode === 'object' && mode != null && 'promptInfo' in mode ? mode.promptInfo : '';
-                })()}
+                promptInfo={resolvedPromptInfo}
                 model={model}
                 contactUrl={contactUrl}
                 contactTargetOrigin={contactTargetOrigin}
                 allowedParentOrigins={allowedParentOrigins}
-                rulesSource={rulesSource === 'hidden' ? 'hidden' : 'folder'}
+                rulesSource={normalizedRulesSource}
+                assistantEnabled={assistantEnabled}
+                assistantDisabledMessage={assistantDisabledMessage}
+                showRulesPanel={shouldShowRulesPanel}
               />
             </div>
           </div>

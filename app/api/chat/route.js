@@ -5,7 +5,7 @@ import { corsPreflight, jsonWithCors } from '../../../lib/server/cors.js';
 import { safeJson } from '../../../lib/server/http.js';
 import { CHAT_MODEL, CHAT_MODEL_ALLOWLIST } from '../../../lib/server/env.js';
 
-const ALLOWED_RULES_SOURCES = new Set(['folder', 'hidden']);
+const ALLOWED_RULES_SOURCES = new Set(['folder', 'hidden', 'external']);
 const HIDDEN_RULES_MAX_CHARS = 20000;
 
 export function OPTIONS(request) {
@@ -25,7 +25,7 @@ export async function POST(request) {
   } = body ?? {};
   const rulesSource = typeof bodyRulesSource === 'string' ? bodyRulesSource.trim().toLowerCase() : 'folder';
   if (!ALLOWED_RULES_SOURCES.has(rulesSource)) {
-    return jsonWithCors(request, { error: 'rules_source must be one of: folder, hidden' }, { status: 400 });
+    return jsonWithCors(request, { error: 'rules_source must be one of: folder, hidden, external' }, { status: 400 });
   }
   const hiddenRulesText = typeof bodyHiddenRulesText === 'string' ? bodyHiddenRulesText.trim() : '';
   if (hiddenRulesText.length > HIDDEN_RULES_MAX_CHARS) {
@@ -68,11 +68,11 @@ export async function POST(request) {
   if (!fallbackRulesResolution) {
     return jsonWithCors(request, { error: 'No rules template available (including fallback)' }, { status: 500 });
   }
-  const useHiddenRules = rulesSource === 'hidden' && hiddenRulesText !== '';
-  const rulesText = useHiddenRules
+  const useHostRules = (rulesSource === 'hidden' || rulesSource === 'external') && hiddenRulesText !== '';
+  const rulesText = useHostRules
     ? hiddenRulesText
     : (fallbackRulesResolution.loaded.meta?.rulesOnly ?? fallbackRulesResolution.loaded.content);
-  const resolvedRuleId = useHiddenRules ? 'hidden' : fallbackRulesResolution.ruleId;
+  const resolvedRuleId = useHostRules ? rulesSource : fallbackRulesResolution.ruleId;
   const messages = buildMessages(rulesText, conversation_history, user_message, optional_context);
   try {
     const { content, usage, model: gatewayModel } = await executeGatewayChat({

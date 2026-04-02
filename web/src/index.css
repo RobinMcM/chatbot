@@ -658,6 +658,43 @@ body {
   flex: 1;
   min-height: 0;
 }
+.chat-input-row--split {
+  gap: 0.75rem;
+}
+.chat-rules-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.chat-rules-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #475569;
+  font-weight: 600;
+}
+.chat-rules-textarea {
+  flex: 1;
+  min-height: 72px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.78rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  line-height: 1.3;
+  resize: none;
+}
+.chat-composer {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
 .chat-input-actions {
   flex-shrink: 0;
   display: flex;
@@ -701,6 +738,9 @@ body {
   font-family: inherit;
   resize: none;
 }
+.chat-composer .chat-input {
+  min-height: 72px;
+}
 .chat-input:focus {
   outline: none;
   border-color: #2563eb;
@@ -743,6 +783,17 @@ body {
 .chat-contact-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+@media (max-width: 640px) {
+  .chat-input-row--split {
+    flex-direction: column;
+  }
+  .chat-rules-panel {
+    flex: 0 0 auto;
+  }
+  .chat-rules-textarea {
+    min-height: 88px;
+  }
 }
 
 /* View chats page (admin) */

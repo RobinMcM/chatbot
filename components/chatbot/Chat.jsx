@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatChatContent } from './utils/formatChatContent.js';
@@ -32,11 +32,20 @@ export default function Chat({
   contactTargetOrigin = '',
   allowedParentOrigins = [],
   rulesSource = 'folder',
+  assistantEnabled = true,
+  assistantDisabledMessage = '',
+  showRulesPanel = false,
 }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState(-1);
+  const [rulesPreview, setRulesPreview] = useState('');
+  const normalizedRulesSource = rulesSource === 'hidden' || rulesSource === 'external' ? rulesSource : 'folder';
+  const isHostRulesSource = normalizedRulesSource === 'hidden' || normalizedRulesSource === 'external';
+  const disabledMessage = typeof assistantDisabledMessage === 'string' && assistantDisabledMessage.trim()
+    ? assistantDisabledMessage.trim()
+    : 'Assistant is disabled for this section.';
 
   const requestHiddenRulesText = useCallback(async () => {
     if (typeof window === 'undefined' || !window.parent || window.parent === window) return '';
@@ -71,7 +80,23 @@ export default function Chat({
     });
   }, []);
 
+  useEffect(() => {
+    if (!showRulesPanel || !isHostRulesSource) {
+      setRulesPreview('');
+      return;
+    }
+    let cancelled = false;
+    requestHiddenRulesText().then((text) => {
+      if (cancelled) return;
+      setRulesPreview(typeof text === 'string' ? text : '');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isHostRulesSource, requestHiddenRulesText, showRulesPanel]);
+
   const handleSend = async () => {
+    if (!assistantEnabled) return;
     const userMessage = input.trim();
     if (!userMessage || !chatMode) return;
 
@@ -87,12 +112,13 @@ export default function Chat({
         conversation_history: conversationHistory,
         user_message: userMessage,
       };
-      body.rules_source = rulesSource === 'hidden' ? 'hidden' : 'folder';
-      if (body.rules_source === 'hidden') {
+      body.rules_source = normalizedRulesSource;
+      if (isHostRulesSource) {
         const hiddenRulesText = await requestHiddenRulesText();
         if (hiddenRulesText.trim()) {
           body.hidden_rules_text = hiddenRulesText;
         }
+        if (showRulesPanel) setRulesPreview(hiddenRulesText);
       }
       if (typeof model === 'string' && model.trim() !== '') body.model = model.trim();
       console.log('[chatbot] sending /api/chat', {
@@ -217,7 +243,9 @@ export default function Chat({
       <div className="chat-messages">
         {conversationHistory.length === 0 && (
           <div className="chat-placeholder">
-            {typeof promptInfo === 'string' && promptInfo.trim() !== '' ? promptInfo.trim() : 'Send a message to start.'}
+            {!assistantEnabled
+              ? disabledMessage
+              : (typeof promptInfo === 'string' && promptInfo.trim() !== '' ? promptInfo.trim() : 'Send a message to start.')}
           </div>
         )}
         {conversationHistory.map((msg, i) => {
@@ -254,14 +282,26 @@ export default function Chat({
       {error && <div className="chat-error">{error}</div>}
       <div className="chat-bottom">
         <div className="chat-input-section">
-          <div className="chat-input-row">
+          <div className={`chat-input-row${showRulesPanel ? ' chat-input-row--split' : ''}`}>
+            {showRulesPanel && (
+              <div className="chat-rules-panel">
+                <label className="chat-rules-label">Active Rules (Development)</label>
+                <textarea
+                  className="chat-rules-textarea"
+                  readOnly
+                  value={rulesPreview || 'Waiting for host rules payload...'}
+                  aria-label="Active rules payload"
+                />
+              </div>
+            )}
+            <div className="chat-composer">
             <textarea
               className="chat-input"
-              placeholder="Type a message…"
+              placeholder={assistantEnabled ? 'Type a message…' : disabledMessage}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-              disabled={sending || !chatMode}
+              disabled={sending || !chatMode || !assistantEnabled}
               rows={2}
               aria-label="Type a message"
             />
@@ -270,7 +310,7 @@ export default function Chat({
                 type="button"
                 className="chat-send"
                 onClick={handleSend}
-                disabled={sending || !input.trim() || !chatMode}
+                disabled={sending || !input.trim() || !chatMode || !assistantEnabled}
               >
                 {sending ? 'Sending…' : 'Send'}
               </button>
@@ -283,11 +323,12 @@ export default function Chat({
                 type="button"
                 className="chat-contact-btn"
                 onClick={handleContact}
-                disabled={sending || conversationHistory.length === 0}
+                disabled={sending || conversationHistory.length === 0 || !assistantEnabled}
                 aria-label="Continue to contact page"
               >
                 Contact
               </button>
+            </div>
             </div>
           </div>
         </div>

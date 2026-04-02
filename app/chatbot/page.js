@@ -66,7 +66,40 @@ function parseAllowedParentOrigins(searchParams) {
 function parseRulesSource(searchParams) {
   if (!searchParams) return 'folder';
   const value = typeof searchParams.rules_source === 'string' ? searchParams.rules_source.trim().toLowerCase() : '';
-  return value === 'hidden' ? 'hidden' : 'folder';
+  if (value === 'hidden') return 'hidden';
+  if (value === 'external') return 'external';
+  return 'folder';
+}
+
+function parseContextLabel(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.context_label === 'string' ? searchParams.context_label : '';
+  return value.trim().slice(0, 160);
+}
+
+function parsePromptInfo(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.prompt_info === 'string' ? searchParams.prompt_info : '';
+  return value.trim().slice(0, 20000);
+}
+
+function parseAssistantEnabled(searchParams) {
+  if (!searchParams) return true;
+  const value = typeof searchParams.assistant_enabled === 'string' ? searchParams.assistant_enabled.trim().toLowerCase() : '';
+  if (value === '0' || value === 'false' || value === 'off') return false;
+  return true;
+}
+
+function parseAssistantDisabledMessage(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.assistant_disabled_message === 'string' ? searchParams.assistant_disabled_message : '';
+  return value.trim().slice(0, 400);
+}
+
+function parseRulesPanel(searchParams) {
+  if (!searchParams) return '';
+  const value = typeof searchParams.rules_panel === 'string' ? searchParams.rules_panel.trim().toLowerCase() : '';
+  return value === 'visible' || value === 'hidden' ? value : '';
 }
 
 async function resolveSearchParams(searchParams) {
@@ -86,6 +119,11 @@ export default async function ChatbotHomePage({ searchParams }) {
       contactTargetOrigin={parseContactTargetOrigin(resolvedSearchParams)}
       allowedParentOrigins={parseAllowedParentOrigins(resolvedSearchParams)}
       rulesSource={parseRulesSource(resolvedSearchParams)}
+      contextLabel={parseContextLabel(resolvedSearchParams)}
+      promptInfoOverride={parsePromptInfo(resolvedSearchParams)}
+      assistantEnabled={parseAssistantEnabled(resolvedSearchParams)}
+      assistantDisabledMessage={parseAssistantDisabledMessage(resolvedSearchParams)}
+      rulesPanel={parseRulesPanel(resolvedSearchParams)}
     />
   );
 }
