@@ -183,6 +183,12 @@ export default function ChatbotClient({
   const resolvedPromptInfo = useExternalDisplay && normalizedPromptInfoOverride
     ? normalizedPromptInfoOverride
     : fallbackPromptInfo;
+  const promptInfoWithFallbackUrl = (() => {
+    const baseText = typeof resolvedPromptInfo === 'string' ? resolvedPromptInfo : '';
+    if (!baseText.includes('Fallback template used when no valid rule is provided.')) return baseText;
+    if (typeof window === 'undefined') return baseText;
+    return `${baseText} (${window.location.href})`;
+  })();
   const shouldShowRulesPanel = useExternalDisplay
     ? (rulesPanel === 'visible' || rulesPanel === '')
     : false;
@@ -242,7 +248,9 @@ export default function ChatbotClient({
                         <div className="chatbot-panel-info-popover" role="dialog" aria-label="Prompt information">
                           <h3 className="chatbot-panel-info-heading">Prompt Information</h3>
                           <p className="chatbot-panel-info-text">
-                            {typeof resolvedPromptInfo === 'string' && resolvedPromptInfo ? resolvedPromptInfo : 'No description.'}
+                            {typeof promptInfoWithFallbackUrl === 'string' && promptInfoWithFallbackUrl
+                              ? promptInfoWithFallbackUrl
+                              : 'No description.'}
                           </p>
                           <button type="button" className="chatbot-panel-info-close" onClick={() => setInfoOpen(false)} aria-label="Close">×</button>
                         </div>
@@ -258,7 +266,7 @@ export default function ChatbotClient({
                 conversationHistory={conversationHistory}
                 onHistoryChange={setConversationHistory}
                 onClearHistory={() => setConversationHistory([])}
-                promptInfo={resolvedPromptInfo}
+                promptInfo={promptInfoWithFallbackUrl}
                 model={model}
                 contactUrl={contactUrl}
                 contactTargetOrigin={contactTargetOrigin}
