@@ -10,6 +10,8 @@ const PANEL_HEIGHT_MAX = 800;
 const PANEL_WIDTH_DEFAULT = 380;
 const PANEL_WIDTH_MIN = 320;
 const PANEL_WIDTH_MAX = 640;
+const PANEL_VIEWPORT_WIDTH_MARGIN = 32;
+const PANEL_VIEWPORT_HEIGHT_MARGIN = 96;
 
 async function readJsonResponse(res) {
   const text = await res.text();
@@ -83,54 +85,99 @@ export default function ChatbotClient({
   const [infoOpen, setInfoOpen] = useState(false);
   const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT_DEFAULT);
   const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH_DEFAULT);
+  const panelRef = useRef(null);
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
-  const panelBodyStyle = backgroundColor ? { '--chat-accent-bg': backgroundColor } : undefined;
+  const resizeFrameRef = useRef(0);
+  const resizeLiveRef = useRef({ lastX: 0, lastY: 0, width: PANEL_WIDTH_DEFAULT, height: PANEL_HEIGHT_DEFAULT });
+  const panelBodyStyle = backgroundColor
+    ? {
+      '--chat-accent-bg': backgroundColor,
+      '--chat-prompt-accent': backgroundColor,
+      '--chat-prompt-accent-bg': backgroundColor,
+    }
+    : undefined;
   const normalizedRulesSource = rulesSource === 'hidden' || rulesSource === 'external' ? rulesSource : 'folder';
   const normalizedContextLabel = typeof contextLabel === 'string' ? contextLabel.trim() : '';
   const normalizedPromptInfoOverride = typeof promptInfoOverride === 'string' ? promptInfoOverride.trim() : '';
   const useExternalDisplay = normalizedRulesSource === 'external';
 
   const getMaxHeight = useCallback(
-    () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - 80 : PANEL_HEIGHT_MAX),
+    () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - PANEL_VIEWPORT_HEIGHT_MARGIN : PANEL_HEIGHT_MAX),
     []
   );
   const getMaxWidth = useCallback(
-    () => Math.min(PANEL_WIDTH_MAX, typeof window !== 'undefined' ? window.innerWidth - 32 : PANEL_WIDTH_MAX),
+    () => Math.min(PANEL_WIDTH_MAX, typeof window !== 'undefined' ? window.innerWidth - PANEL_VIEWPORT_WIDTH_MARGIN : PANEL_WIDTH_MAX),
     []
   );
 
   const handleResizeStart = useCallback((e) => {
     e.preventDefault();
+    if (!panelRef.current) return;
+    const currentPanel = panelRef.current;
+    const pointerId = typeof e.pointerId === 'number' ? e.pointerId : null;
+    if (pointerId !== null && typeof e.currentTarget?.setPointerCapture === 'function') {
+      e.currentTarget.setPointerCapture(pointerId);
+    }
     resizeRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       startWidth: panelWidth,
       startHeight: panelHeight,
     };
-    const onMove = (moveEvent) => {
-      const dx = resizeRef.current.startX - moveEvent.clientX;
-      const dy = resizeRef.current.startY - moveEvent.clientY;
+    resizeLiveRef.current.lastX = e.clientX;
+    resizeLiveRef.current.lastY = e.clientY;
+    resizeLiveRef.current.width = panelWidth;
+    resizeLiveRef.current.height = panelHeight;
+    currentPanel.classList.add('chatbot-panel--resizing');
+
+    const applyResize = () => {
+      resizeFrameRef.current = 0;
+      const dx = resizeRef.current.startX - resizeLiveRef.current.lastX;
+      const dy = resizeRef.current.startY - resizeLiveRef.current.lastY;
       const maxH = getMaxHeight();
       const maxW = getMaxWidth();
-      setPanelHeight(() => {
-        const next = resizeRef.current.startHeight + dy;
-        return Math.min(maxH, Math.max(PANEL_HEIGHT_MIN, next));
-      });
-      setPanelWidth(() => {
-        const next = resizeRef.current.startWidth + dx;
-        return Math.min(maxW, Math.max(PANEL_WIDTH_MIN, next));
-      });
+      const nextHeight = Math.min(maxH, Math.max(PANEL_HEIGHT_MIN, resizeRef.current.startHeight + dy));
+      const nextWidth = Math.min(maxW, Math.max(PANEL_WIDTH_MIN, resizeRef.current.startWidth + dx));
+      resizeLiveRef.current.width = nextWidth;
+      resizeLiveRef.current.height = nextHeight;
+      if (panelRef.current) {
+        panelRef.current.style.width = `${nextWidth}px`;
+        panelRef.current.style.height = `${nextHeight}px`;
+      }
     };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+
+    const onMove = (moveEvent) => {
+      resizeLiveRef.current.lastX = moveEvent.clientX;
+      resizeLiveRef.current.lastY = moveEvent.clientY;
+      if (resizeFrameRef.current) return;
+      resizeFrameRef.current = window.requestAnimationFrame(applyResize);
+    };
+
+    const onUp = (upEvent) => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      if (resizeFrameRef.current) {
+        window.cancelAnimationFrame(resizeFrameRef.current);
+        resizeFrameRef.current = 0;
+        if (typeof upEvent.clientX === 'number' && typeof upEvent.clientY === 'number') {
+          resizeLiveRef.current.lastX = upEvent.clientX;
+          resizeLiveRef.current.lastY = upEvent.clientY;
+        }
+        applyResize();
+      }
+      setPanelWidth(resizeLiveRef.current.width);
+      setPanelHeight(resizeLiveRef.current.height);
+      currentPanel.classList.remove('chatbot-panel--resizing');
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
+
     document.body.style.cursor = 'nwse-resize';
     document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   }, [panelHeight, panelWidth, getMaxHeight, getMaxWidth]);
 
   useEffect(() => {
@@ -190,7 +237,7 @@ export default function ChatbotClient({
     return `${baseText} (${window.location.href})`;
   })();
   const shouldShowRulesPanel = useExternalDisplay
-    ? (rulesPanel === 'visible' || rulesPanel === '')
+    ? (rulesPanel === 'visible')
     : false;
 
   return (
@@ -202,6 +249,7 @@ export default function ChatbotClient({
       ) : (
         <div>
           <div
+            ref={panelRef}
             className="chatbot-panel"
             style={
               embedded
@@ -213,7 +261,7 @@ export default function ChatbotClient({
               <button
                 type="button"
                 className="chatbot-panel-corner-resize"
-                onMouseDown={handleResizeStart}
+                onPointerDown={handleResizeStart}
                 aria-label="Resize chat panel"
                 title="Drag to resize"
               >

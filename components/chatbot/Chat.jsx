@@ -335,7 +335,7 @@ export default function Chat({
       </div>
       <p className="chat-disclaimer" aria-label="Disclaimer">
         Responses are AI-generated and do not constitute formal advice.
-        <span className="chat-footer-label" aria-label="Footer label">5</span>
+        <span className="chat-footer-label" aria-label="Footer label">6</span>
       </p>
     </div>
   );
