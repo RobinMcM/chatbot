@@ -247,6 +247,30 @@ body {
 .chatbot-panel-header-section {
   width: 100%;
 }
+
+/* Ensure inner iframe layout always reflows with resized host width */
+.chat,
+.chat-bottom,
+.chat-input-section,
+.chat-input-row,
+.chat-messages,
+.chatbot-panel-header,
+.chatbot-panel-header-section {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-composer,
+.chat-input,
+.chat-rules-panel,
+.chat-rules-textarea,
+textarea,
+input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 .chatbot-panel-email-section {
   padding: 0.5rem 1rem;
   border-bottom: 1px solid rgba(255,255,255,0.2);
