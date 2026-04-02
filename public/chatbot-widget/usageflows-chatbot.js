@@ -63,8 +63,8 @@
     btn.title = 'Drag to resize';
     btn.setAttribute('aria-label', 'Resize chat panel');
     btn.style.position = 'absolute';
-    btn.style.bottom = '-18px';
-    btn.style.right = '-18px';
+    btn.style.bottom = '10px';
+    btn.style.right = '10px';
     btn.style.width = '36px';
     btn.style.height = '36px';
     btn.style.border = '2px solid rgba(255,255,255,0.35)';
@@ -95,7 +95,8 @@
       var modeId = (this.getAttribute('mode-id') || '').trim();
       var ruleId = (this.getAttribute('rule') || '').trim();
       var apiBase = normalizeBase(this.getAttribute('api-base') || '');
-      var embedded = this.getAttribute('embedded') !== 'false';
+      var embeddedAttr = (this.getAttribute('embedded') || '').trim().toLowerCase();
+      var embedded = embeddedAttr ? !(embeddedAttr === 'false' || embeddedAttr === '0' || embeddedAttr === 'off') : true;
       var embedSrc = (this.getAttribute('embed-src') || '').trim();
       var model = (this.getAttribute('model') || '').trim();
       var bgColor = (this.getAttribute('bg-color') || '').trim();
@@ -255,6 +256,7 @@
       button.style.display = 'inline-flex';
       button.style.alignItems = 'center';
       button.style.justifyContent = 'center';
+      button.style.zIndex = '4';
       button.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
 
       var panel = document.createElement('div');

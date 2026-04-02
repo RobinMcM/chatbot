@@ -236,9 +236,8 @@ export default function ChatbotClient({
     if (typeof window === 'undefined') return baseText;
     return `${baseText} (${window.location.href})`;
   })();
-  const shouldShowRulesPanel = useExternalDisplay
-    ? (rulesPanel === 'visible')
-    : false;
+  // Rules preview panel is disabled for production usage.
+  const shouldShowRulesPanel = false;
 
   return (
     <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
