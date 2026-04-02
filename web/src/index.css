@@ -36,10 +36,12 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  align-items: stretch;
 }
 .chatbot-widget--embed > * {
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 .chatbot-widget--embed .chatbot-panel {
   width: 100% !important;
