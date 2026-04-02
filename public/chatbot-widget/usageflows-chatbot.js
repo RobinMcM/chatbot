@@ -63,8 +63,8 @@
     btn.title = 'Drag to resize';
     btn.setAttribute('aria-label', 'Resize chat panel');
     btn.style.position = 'absolute';
-    btn.style.top = '-18px';
-    btn.style.left = '-18px';
+    btn.style.bottom = '-18px';
+    btn.style.right = '-18px';
     btn.style.width = '36px';
     btn.style.height = '36px';
     btn.style.border = '2px solid rgba(255,255,255,0.35)';
@@ -330,8 +330,8 @@
         if (!dragState) return;
         if (dragState.pointerId != null && typeof event.pointerId === 'number' && event.pointerId !== dragState.pointerId) return;
         event.preventDefault();
-        var dx = dragState.startX - event.clientX;
-        var dy = dragState.startY - event.clientY;
+        var dx = event.clientX - dragState.startX;
+        var dy = event.clientY - dragState.startY;
         var nextW = Math.max(320, Math.min(getMaxWidth(), dragState.startW + dx));
         var nextH = Math.max(360, Math.min(getMaxHeight(), dragState.startH + dy));
         panel.style.width = String(Math.round(nextW)) + 'px';
