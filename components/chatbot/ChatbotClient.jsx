@@ -114,6 +114,7 @@ export default function ChatbotClient({
     e.preventDefault();
     if (!panelRef.current) return;
     const currentPanel = panelRef.current;
+    const startRect = currentPanel.getBoundingClientRect();
     const pointerId = typeof e.pointerId === 'number' ? e.pointerId : null;
     if (pointerId !== null && typeof e.currentTarget?.setPointerCapture === 'function') {
       e.currentTarget.setPointerCapture(pointerId);
@@ -121,13 +122,13 @@ export default function ChatbotClient({
     resizeRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      startWidth: panelWidth,
-      startHeight: panelHeight,
+      startWidth: startRect.width,
+      startHeight: startRect.height,
     };
     resizeLiveRef.current.lastX = e.clientX;
     resizeLiveRef.current.lastY = e.clientY;
-    resizeLiveRef.current.width = panelWidth;
-    resizeLiveRef.current.height = panelHeight;
+    resizeLiveRef.current.width = startRect.width;
+    resizeLiveRef.current.height = startRect.height;
     currentPanel.classList.add('chatbot-panel--resizing');
 
     const applyResize = () => {
@@ -178,7 +179,7 @@ export default function ChatbotClient({
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
-  }, [panelHeight, panelWidth, getMaxHeight, getMaxWidth]);
+  }, [getMaxHeight, getMaxWidth]);
 
   useEffect(() => {
     fetch(apiUrl(apiBase, '/api/chat-modes'))
