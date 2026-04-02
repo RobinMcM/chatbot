@@ -272,7 +272,7 @@
         var savedRaw = sessionStorage.getItem(sizeStorageKey);
         if (savedRaw) {
           var saved = JSON.parse(savedRaw);
-          var restoredW = sanitizeSize(saved && saved.width, 320, Math.max(320, Math.min(860, window.innerWidth - 32)));
+          var restoredW = sanitizeSize(saved && saved.width, 280, Math.max(280, Math.min(860, window.innerWidth - 32)));
           var restoredH = sanitizeSize(saved && saved.height, 360, Math.max(360, Math.min(900, window.innerHeight - 32)));
           if (restoredW) panel.style.width = String(restoredW) + 'px';
           if (restoredH) panel.style.height = String(restoredH) + 'px';
@@ -290,7 +290,7 @@
 
       var dragState = null;
       var getMaxWidth = function () {
-        return Math.max(320, Math.min(860, window.innerWidth - 32));
+        return Math.max(280, Math.min(860, window.innerWidth - 32));
       };
       var getMaxHeight = function () {
         return Math.max(360, Math.min(900, window.innerHeight - 32));
@@ -334,7 +334,7 @@
         event.preventDefault();
         var dx = dragState.startX - event.clientX;
         var dy = dragState.startY - event.clientY;
-        var nextW = Math.max(320, Math.min(getMaxWidth(), dragState.startW + dx));
+        var nextW = Math.max(280, Math.min(getMaxWidth(), dragState.startW + dx));
         var nextH = Math.max(360, Math.min(getMaxHeight(), dragState.startH + dy));
         panel.style.width = String(Math.round(nextW)) + 'px';
         panel.style.height = String(Math.round(nextH)) + 'px';
