@@ -1,6 +1,8 @@
-# UsageFlows Chatbot v2
+# MovieShaker Chatbot
 
-Standalone chatbot app built with Next.js App Router and Tailwind, with API Route Handlers and `models.rapidmvp.io` as the gateway source of truth.
+Virtual co-production assistant for MovieShaker.
+Context-aware chatbot embedded into MovieShakerV2 pages.
+Built with Next.js App Router, powered by `models.rapidmvp.io`.
 
 ## Install
 
@@ -8,7 +10,7 @@ Standalone chatbot app built with Next.js App Router and Tailwind, with API Rout
 npm install
 ```
 
-## Run
+## Run locally
 
 ```bash
 npm run dev
@@ -25,19 +27,29 @@ npm run start
 
 ## Chat routes
 
-- `/chatbot`
-- `/chatbot/[modeId]`
-- `/chatbot/embed`
-- `/chatbot/embed/[modeId]`
+| Route | Description |
+|-------|-------------|
+| `/chatbot` | Full app, default mode |
+| `/chatbot/[modeId]` | Full app, specific mode |
+| `/chatbot/embed` | Embedded widget, default mode |
+| `/chatbot/embed/[modeId]` | Embedded widget, specific mode |
 
 ## API routes
 
-- `GET /api/health`
-- `GET /api/chat-modes`
-- `GET /api/rules/[chat_mode]`
-- `POST /api/chat`
+| Route | Description |
+|-------|-------------|
+| `GET /api/health` | Unauthenticated health check |
+| `GET /api/chat-modes` | Returns available MovieShaker chat modes |
+| `POST /api/chat` | Send a message, get a response |
 
-The chatbot is stateless in Next.js runtime: no server-side chat history/admin endpoints.
+## Chat modes
+
+Modes are defined in `lib/server/modes.js`. Each mode maps to a section
+of the MovieShaker platform and provides a tailored system prompt.
+
+Current modes: `general`, `scripts`, `budget`, `scheduling`, `festivals`, `moodboard`
+
+To add a new mode — edit `lib/server/modes.js` only. No other files need changing.
 
 ## Embed options
 
@@ -45,8 +57,8 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
 
 ```html
 <iframe
-  src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-mini&bg=%23250411"
-  title="Advisory assistant"
+  src="https://chatbot.rapidmvp.io/chatbot/embed/festivals"
+  title="MovieShaker Assistant"
   width="380"
   height="560"
   style="border:0;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);"
@@ -58,107 +70,71 @@ The chatbot is stateless in Next.js runtime: no server-side chat history/admin e
 ### Script/widget
 
 ```html
-<script src="https://your-chatbot-host/chatbot-widget/usageflows-chatbot.js" defer></script>
+<script src="https://chatbot.rapidmvp.io/chatbot-widget/usageflows-chatbot.js" defer></script>
 <usageflows-chatbot
-  rule="insolvency"
-  api-base="https://your-chatbot-host"
-  embedded="false"
-  model="openai/gpt-5-mini"
-  bg-color="#f8fafc"
-  contact-url="https://clientsite.com/contact"
-  contact-target-origin="https://clientsite.com"
-  allowed-parent-origins="https://clientsite.com,https://www.clientsite.com"
-></usageflows-chatbot>
-```
-
-You can also pass a single full embed URL:
-
-```html
-<usageflows-chatbot
-  embed-src="https://your-chatbot-host/chatbot/embed?rule=insolvency&model=openai/gpt-5-mini&bg=%23250411&contact_url=https%3A%2F%2Fclientsite.com%2Fcontact&contact_target_origin=https%3A%2F%2Fclientsite.com&allowed_parent_origins=https%3A%2F%2Fclientsite.com%2Chttps%3A%2F%2Fwww.clientsite.com"
+  mode-id="festivals"
+  api-base="https://chatbot.rapidmvp.io"
   embedded="false"
 ></usageflows-chatbot>
 ```
 
-Versioned alias:
+## Page context
 
-- `/chatbot-widget/v1/usageflows-chatbot.js`
+Pass the current MovieShaker page context to get mode-aware responses:
+
+```js
+// POST /api/chat
+{
+  "chat_mode": "festivals",
+  "conversation_history": [],
+  "user_message": "Which festivals should I target?",
+  "page_context": "Project: The Last Frame. Genre: Documentary. Budget: £50k."
+}
+```
 
 ## Environment variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GATEWAY_BASE_URL` | Gateway base URL | `https://models.rapidmvp.io` |
-| `GATEWAY_API_KEY` | Internal key for gateway `X-Internal-API-Key` | required |
-| `CHAT_MODEL` | Default model id sent in payload | `openai/gpt-5-mini` |
-| `CHAT_MODEL_ALLOWLIST` | Optional comma-separated allowlist for URL-provided `?model=` values | empty |
-| `GATEWAY_TIMEOUT_MS` | Timeout to gateway in ms | `120000` |
-| `CHATBOT_CORS_ALLOWED_ORIGINS` | CORS allowlist for `/api/*` | `https://rapidmvp.io,https://www.rapidmvp.io,https://chatbot.rapidmvp.io` |
-| `CHATBOT_FRAME_ANCESTORS` | CSP `frame-ancestors` allowlist for `/chatbot/*` | `'self' https://rapidmvp.io https://www.rapidmvp.io https://*.sharepoint.com` |
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `GATEWAY_API_KEY` | ✅ | Internal key for gateway auth | — |
+| `GATEWAY_BASE_URL` | | Gateway base URL | `https://models.rapidmvp.io` |
+| `CHAT_MODEL` | | Default model id | `openai/gpt-5-mini` |
+| `CHAT_MODEL_ALLOWLIST` | | Comma-separated allowed model ids | empty (all allowed) |
+| `GATEWAY_TIMEOUT_MS` | | Gateway request timeout ms | `120000` |
+| `CHATBOT_CORS_ALLOWED_ORIGINS` | | CORS allowlist for `/api/*` | rapidmvp.io origins |
+| `CHATBOT_FRAME_ANCESTORS` | | CSP `frame-ancestors` for embed security | rapidmvp.io + SharePoint |
 
-Model precedence:
-1. URL query `?model=...` (or widget `model` attribute),
-2. `CHAT_MODEL` fallback.
+Note: `GATEWAY_INTERNAL_API_KEY` is also accepted as an alias for `GATEWAY_API_KEY`.
 
-Background override:
-- URL query `?bg=...` (or widget `bg-color` attribute), e.g. `?bg=%23f8fafc`.
+## Gateway
 
-Rule selection:
-- URL query `?rule=...` (or widget `rule` attribute) loads `rules/<rule>.md`.
-- If `rule` is missing/invalid, chatbot falls back to `rules/default.md`.
+The chatbot calls `openrouter-gateway` at `models.rapidmvp.io` directly.
+It does not call MovieShakerV2 engine for chat — it is a standalone consumer of the gateway.
 
-## Cross-origin contact handoff (no database)
+## Cross-origin contact handoff
 
-- User clicks **Contact** in chatbot.
-- Chatbot sends a secure `postMessage` payload to the parent page (`type: usageflows:contactPayload`).
-- Widget script stores payload in `sessionStorage` and redirects to `contact-url`.
-- Contact page reads payload from storage and pre-fills the submit form.
+The **Contact** button in the chat sends a `postMessage` payload to the parent page.
+The parent page can use this to pre-fill a contact form with the conversation transcript.
 
-Suggested contact-page prefill snippet:
+Payload type: `usageflows:contactPayload`
 
-```html
-<script>
-  (function () {
-    var key = 'usageflows_contact_payload';
-    var raw = sessionStorage.getItem(key);
-    if (!raw) return;
-    try {
-      var payload = JSON.parse(raw);
-      if (!payload || payload.type !== 'usageflows:contactPayload') return;
-      var transcriptText = (Array.isArray(payload.transcript) ? payload.transcript : [])
-        .map(function (m) { return String(m.role || '') + ': ' + String(m.content || ''); })
-        .join('\n\n');
-      var summary = typeof payload.summary === 'string' ? payload.summary : '';
-      var field = document.querySelector('#chatTranscript');
-      if (field) field.value = (summary ? summary + '\n\n' : '') + transcriptText;
+## Security
 
-      var form = document.querySelector('form');
-      if (form) {
-        form.addEventListener('submit', function () {
-          sessionStorage.removeItem(key);
-        }, { once: true });
-      }
-    } catch (_) {}
-  })();
-</script>
-```
+- System prompts are never exposed to the client via `/api/chat-modes`
+- CSP `frame-ancestors` is enforced via `middleware.js`
+- `GATEWAY_API_KEY` is server-side only — never sent to the browser
 
-Cross-origin verification checklist:
-
-1. Load widget on client origin (for example `https://clientsite.com`) and send chat messages.
-2. Click **Contact** and confirm browser navigates to `contact-url?chat_prefill=1`.
-3. Confirm contact form field (for example `#chatTranscript`) is prefilled from session payload.
-4. Submit form and confirm `sessionStorage.getItem('usageflows_contact_payload')` is cleared.
-5. Negative test: set `allowed-parent-origins` to a different origin and confirm no redirect happens.
-6. Negative test: set `contact-target-origin` that does not match `contact-url` and confirm no redirect happens.
-
-## Testing and evals
+## Testing
 
 ```bash
-npm test
+node --test tests/rules.test.js
+```
+
+## Evals
+
+```bash
 node scripts/run-evals.js
 ```
 
-- Eval fixtures: `evals/baseline.json`
-- Eval output: `evals/latest-results.json`
-- Rollout checklist: `docs/deployment-checklist.md`
+Fixtures: `evals/baseline.json`
+Checklist: `docs/deployment-checklist.md`
