@@ -63,18 +63,13 @@ export default function ChatbotClient({
   embedded = false,
   apiBase = '',
   modeId = null,
-  ruleId = '',
   model = '',
   backgroundColor = '',
   contactUrl = '',
   contactTargetOrigin = '',
   allowedParentOrigins = [],
-  rulesSource = 'folder',
-  contextLabel = '',
-  promptInfoOverride = '',
   assistantEnabled = true,
   assistantDisabledMessage = '',
-  rulesPanel = '',
 }) {
   const [chatModes, setChatModes] = useState([]);
   const [chatMode, setChatMode] = useState('');
@@ -96,10 +91,6 @@ export default function ChatbotClient({
       '--chat-prompt-accent-bg': backgroundColor,
     }
     : undefined;
-  const normalizedRulesSource = rulesSource === 'hidden' || rulesSource === 'external' ? rulesSource : 'folder';
-  const normalizedContextLabel = typeof contextLabel === 'string' ? contextLabel.trim() : '';
-  const normalizedPromptInfoOverride = typeof promptInfoOverride === 'string' ? promptInfoOverride.trim() : '';
-  const useExternalDisplay = normalizedRulesSource === 'external';
 
   const getMaxHeight = useCallback(
     () => Math.min(PANEL_HEIGHT_MAX, typeof window !== 'undefined' ? window.innerHeight - PANEL_VIEWPORT_HEIGHT_MARGIN : PANEL_HEIGHT_MAX),
@@ -193,15 +184,15 @@ export default function ChatbotClient({
         const list = Array.isArray(modes) ? modes : [];
         setChatModes(list);
         const ids = list.map((m) => (typeof m === 'object' && m != null && 'id' in m ? m.id : m));
-        const normalizedRule = typeof ruleId === 'string' && ruleId.trim() ? ruleId.trim() : '';
-        const normalizedLegacyMode = typeof modeId === 'string' && modeId.trim() ? modeId.trim() : '';
-        const requested = normalizedRule || normalizedLegacyMode;
-        const canonical = requested ? ids.find((id) => id.toLowerCase() === requested.toLowerCase()) || null : null;
-        setChatMode(canonical || 'default');
+        const requested = typeof modeId === 'string' && modeId.trim() ? modeId.trim() : '';
+        const canonical = requested
+          ? ids.find((id) => id.toLowerCase() === requested.toLowerCase()) || null
+          : null;
+        setChatMode(canonical || ids[0] || 'general');
       })
       .catch((err) => setError(err.message || 'Failed to load chat modes'))
       .finally(() => setLoading(false));
-  }, [modeId, ruleId, apiBase]);
+  }, [modeId, apiBase]);
 
   if (loading) {
     return (
@@ -222,23 +213,14 @@ export default function ChatbotClient({
   const fallbackDisplayLabel = typeof selectedMode === 'object' && selectedMode != null && 'displayName' in selectedMode
     ? selectedMode.displayName
     : chatMode;
-  const resolvedDisplayLabel = useExternalDisplay && normalizedContextLabel
-    ? normalizedContextLabel
-    : fallbackDisplayLabel;
+  const resolvedDisplayLabel = fallbackDisplayLabel;
   const fallbackPromptInfo = typeof selectedMode === 'object' && selectedMode != null && 'promptInfo' in selectedMode
     ? selectedMode.promptInfo
     : '';
-  const resolvedPromptInfo = useExternalDisplay && normalizedPromptInfoOverride
-    ? normalizedPromptInfoOverride
-    : fallbackPromptInfo;
-  const promptInfoWithFallbackUrl = (() => {
-    const baseText = typeof resolvedPromptInfo === 'string' ? resolvedPromptInfo : '';
-    if (!baseText.includes('Fallback template used when no valid rule is provided.')) return baseText;
-    if (typeof window === 'undefined') return baseText;
-    return `${baseText} (${window.location.href})`;
-  })();
-  // Rules preview panel is disabled for production usage.
-  const shouldShowRulesPanel = false;
+  const resolvedPromptInfo = fallbackPromptInfo;
+  const promptInfoWithFallbackUrl = typeof resolvedPromptInfo === 'string'
+    ? resolvedPromptInfo
+    : '';
 
   return (
     <div className={`chatbot-widget${embedded ? ' chatbot-widget--embed' : ''}`}>
@@ -272,7 +254,7 @@ export default function ChatbotClient({
               <header className="chatbot-panel-header">
                 <div className="chatbot-panel-title-row">
                   <div className="chatbot-panel-brand">
-                    <span className="chatbot-panel-title"><strong>Rapid</strong> MVP Assistant</span>
+                    <span className="chatbot-panel-title"><strong>Movie</strong>Shaker Assistant</span>
                   </div>
                   {!embedded && (
                     <button type="button" className="chatbot-panel-close" onClick={() => setOpen(false)} aria-label="Close chat">
@@ -319,10 +301,8 @@ export default function ChatbotClient({
                 contactUrl={contactUrl}
                 contactTargetOrigin={contactTargetOrigin}
                 allowedParentOrigins={allowedParentOrigins}
-                rulesSource={normalizedRulesSource}
                 assistantEnabled={assistantEnabled}
                 assistantDisabledMessage={assistantDisabledMessage}
-                showRulesPanel={shouldShowRulesPanel}
               />
             </div>
           </div>
