@@ -1,8 +1,8 @@
 import ChatbotClient from '../../../components/chatbot/ChatbotClient.jsx';
 
-function parseRule(searchParams) {
+function parseMode(searchParams) {
   if (!searchParams) return '';
-  const value = typeof searchParams.rule === 'string' ? searchParams.rule : '';
+  const value = typeof searchParams.mode === 'string' ? searchParams.mode : '';
   return value.trim().slice(0, 64);
 }
 
@@ -63,26 +63,6 @@ function parseAllowedParentOrigins(searchParams) {
     .filter(Boolean);
 }
 
-function parseRulesSource(searchParams) {
-  if (!searchParams) return 'folder';
-  const value = typeof searchParams.rules_source === 'string' ? searchParams.rules_source.trim().toLowerCase() : '';
-  if (value === 'hidden') return 'hidden';
-  if (value === 'external') return 'external';
-  return 'folder';
-}
-
-function parseContextLabel(searchParams) {
-  if (!searchParams) return '';
-  const value = typeof searchParams.context_label === 'string' ? searchParams.context_label : '';
-  return value.trim().slice(0, 160);
-}
-
-function parsePromptInfo(searchParams) {
-  if (!searchParams) return '';
-  const value = typeof searchParams.prompt_info === 'string' ? searchParams.prompt_info : '';
-  return value.trim().slice(0, 20000);
-}
-
 function parseAssistantEnabled(searchParams) {
   if (!searchParams) return true;
   const value = typeof searchParams.assistant_enabled === 'string' ? searchParams.assistant_enabled.trim().toLowerCase() : '';
@@ -96,34 +76,24 @@ function parseAssistantDisabledMessage(searchParams) {
   return value.trim().slice(0, 400);
 }
 
-function parseRulesPanel(searchParams) {
-  if (!searchParams) return '';
-  const value = typeof searchParams.rules_panel === 'string' ? searchParams.rules_panel.trim().toLowerCase() : '';
-  return value === 'visible' || value === 'hidden' ? value : '';
-}
-
 async function resolveSearchParams(searchParams) {
-  const resolvedSearchParams = await Promise.resolve(searchParams);
-  return resolvedSearchParams && typeof resolvedSearchParams === 'object' ? resolvedSearchParams : {};
+  const resolved = await Promise.resolve(searchParams);
+  return resolved && typeof resolved === 'object' ? resolved : {};
 }
 
 export default async function ChatbotEmbedPage({ searchParams }) {
-  const resolvedSearchParams = await resolveSearchParams(searchParams);
+  const sp = await resolveSearchParams(searchParams);
   return (
     <ChatbotClient
       embedded
-      ruleId={parseRule(resolvedSearchParams)}
-      model={parseModel(resolvedSearchParams)}
-      backgroundColor={parseBackgroundColor(resolvedSearchParams)}
-      contactUrl={parseContactUrl(resolvedSearchParams)}
-      contactTargetOrigin={parseContactTargetOrigin(resolvedSearchParams)}
-      allowedParentOrigins={parseAllowedParentOrigins(resolvedSearchParams)}
-      rulesSource={parseRulesSource(resolvedSearchParams)}
-      contextLabel={parseContextLabel(resolvedSearchParams)}
-      promptInfoOverride={parsePromptInfo(resolvedSearchParams)}
-      assistantEnabled={parseAssistantEnabled(resolvedSearchParams)}
-      assistantDisabledMessage={parseAssistantDisabledMessage(resolvedSearchParams)}
-      rulesPanel={parseRulesPanel(resolvedSearchParams)}
+      modeId={parseMode(sp)}
+      model={parseModel(sp)}
+      backgroundColor={parseBackgroundColor(sp)}
+      contactUrl={parseContactUrl(sp)}
+      contactTargetOrigin={parseContactTargetOrigin(sp)}
+      allowedParentOrigins={parseAllowedParentOrigins(sp)}
+      assistantEnabled={parseAssistantEnabled(sp)}
+      assistantDisabledMessage={parseAssistantDisabledMessage(sp)}
     />
   );
 }
